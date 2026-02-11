@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stats - Hyperk</title>
+  <link rel="stylesheet" href="/css/pico.min.css?v=1">
+  <link rel="stylesheet" href="/style.css?v=1">
+</head>
+<body>
+  <nav class="container-fluid">
+    <ul>
+      <li style="display: flex; align-items: center;">
+        <span class="logo-h"></span><strong class="yperk">y<span class="perk">perk</span></strong>
+      </li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/settings.html">Settings</a></li>
+      <li><a href="/stats.html">Stats</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <h1>System Statistics</h1>
+
+    <table>
+      <thead>
+        <tr><th>Parameter</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Device Name</td><td id="stat-device">Loading...</td></tr>
+        <tr><td>IP Address</td><td id="stat-ip">Loading...</td></tr>
+        <tr><td>Signal Strength</td><td id="stat-rssi">Loading...</td></tr>
+        <tr><td>Uptime</td><td id="stat-uptime">Loading...</td></tr>
+        <tr><td>Free Heap</td><td id="stat-heap">Loading...</td></tr>
+        <tr><td>Architecture</td><td id="stat-arch">Loading...</td></tr>
+        <tr><td>LED output</td><td id="stat-fps">Loading...</td></tr>
+        <tr><td>Skipped frames</td><td id="stat-skipped">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <p><small id="refresh-msg">Data updates automatically every 5 seconds.</small></p>
+  </main>
+
+  <script>
+    function fetchStats() {
+        fetch('/api/stats')
+          .then(response => response.json())
+          .then(data => {
+              let t = data.UPTIME;
+              let h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, s = t % 60;
+              let uptime = h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` :
+                            m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s}s`;
+              document.getElementById('stat-device').innerText = data.DEVICE;
+              document.getElementById('stat-ip').innerText = data.IP;              
+              document.getElementById('stat-rssi').innerText = data.RSSI;                                      
+              document.getElementById('stat-uptime').innerText = uptime;
+              document.getElementById('stat-heap').innerText = data.HEAP;
+              document.getElementById('stat-arch').innerText = data.ARCH;
+              document.getElementById('stat-fps').innerText = data.FPS + " FPS";
+              document.getElementById('stat-skipped').innerText = data.SKIPPED;
+              document.getElementById('refresh-msg').innerText = "Data updates automatically every 5 seconds.";
+          })
+          .catch(error => {
+              console.error('Error fetching stats:', error);
+              document.getElementById('refresh-msg').innerText = "Connection error. Retrying...";
+        });
+    }
+
+    fetchStats();
+    setInterval(fetchStats, 5000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+option[value="CUSTOM"] {
+    font-weight: bold;
+}
+
+.form-error-msg {
+    color: var(--pico-color-danger, red);
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+}
+
+#custom_ssid_wrapper input.error-active {
+    border-color: var(--pico-color-danger, red) !important;
+    box-shadow: 0 0 0 0.125rem rgba(255,0,0,0.15);
+}
+
+#custom_ssid_wrapper input.error-active:focus {
+    box-shadow: 0 0 0 0.25rem rgba(255,0,0,0.25);
+}
+
+.form-error-msg ~ input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(255,0,0,0.25);
+}
+
+#toast {
+    position: fixed;
+    top: 20px;      
+    right: 20px; 
+    left: 20px;
+    width: auto;
+    max-width: 380px;
+    margin-left: auto;
+    
+    z-index: 2000;
+    padding: 0 !important;
+    border: 1px solid #43a047 !important;
+    overflow: hidden;
+    background: white;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s;
+}
+
+#toast.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+#toast header {
+    background-color: #43a047 !important;
+    color: white !important;
+    padding: 10px 15px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+.toast-body {
+    padding: 20px 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #333; /* Ciemny tekst na białym tle */
+}
+
+.check-icon {
+    color: #43a047;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+hr.section-divider {
+    display: block;
+    height: 1px;
+    border: none;
+    margin-top: 0;
+    margin-bottom: 20px;
+    opacity: 1;
+    background: linear-gradient(
+        90deg, 
+        transparent, 
+        #444 12%, 
+        #444 88%, 
+        transparent
+    );
+}

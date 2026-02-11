@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings - Hyperk</title>
+  <link rel="stylesheet" href="/css/pico.min.css?v=1">
+  <link rel="stylesheet" href="/style.css?v=1">
+  <link rel="stylesheet" href="/settings.css?v=1">
+</head>
+<body>
+
+  <nav class="container-fluid">
+    <ul>
+      <li style="display: flex; align-items: center;">
+        <span class="logo-h"></span><strong class="yperk">y<span class="perk">perk</span></strong>
+      </li>
+    </ul>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/settings.html">Settings</a></li>
+      <li><a href="/stats.html">Stats</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <h1>Settings</h1>
+
+    <!-- WiFi settings -->
+    <form action="/save_wifi" method="POST">
+      <fieldset>
+        <legend>WiFi Configuration</legend>
+        <hr class="section-divider">
+        <label for="ssid_select">SSID:</label>
+        <select name="ssid" id="ssid_select" required>
+          <option value="">Scanning...</option>
+        </select>
+        <div id="custom_ssid_wrapper" style="display:none; margin-top:8px;">
+          <label for="ssid_custom">Custom SSID:</label>
+          <input type="text" name="ssid_custom" id="ssid_custom" placeholder="Enter custom SSID">
+        </div>
+        <label>Password <input type="password" name="pass" required></label>
+        <button type="submit">Save WiFi & Restart</button>
+      </fieldset>
+    </form>
+
+    <hr>
+
+    <!-- Settings -->
+    <form action="/save_config" method="POST">
+      <fieldset>
+        <legend>LED Strip</legend>
+        <hr class="section-divider">
+        <label>LED Type
+          <select id="ledType" name="type" required>
+            <option value="0">WS2812B NeoPixel (RGB)</option>
+            <option value="1">SK6812 NeoPixel (RGBW)</option>
+            <option value="2">APA102 DotStar SPI (RGB)</option>
+          </select>
+        </label>
+
+        <div id="whiteCalibration" style="display: none;">
+          <h5>White channel calibration</h5>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">            
+            <label>R <input type="number" name="calRed" min="0" max="255" value="160"></label>
+            <label>G <input type="number" name="calGreen" min="0" max="255" value="160"></label>
+            <label>B <input type="number" name="calBlue" min="0" max="255" value="160"></label>
+            <label>White <input type="number" name="calGain" min="0" max="255" value="255"></label>
+            <button type="button" onclick="setCalibration(255, 160, 160, 160)">Set Cold</button>
+            <button type="button" onclick="setCalibration(255, 176, 176, 112)">Set Neutral</button>
+          </div>
+          <hr class="section-divider">
+        </div>
+
+        <label>Data Pin (GPIO)
+          <input type="number" name="dataPin" min="0" max="39" value="2" required>
+        </label>
+
+        <label>Clock Pin (only for SPI LEDs)
+          <input type="number" name="clockPin" min="0" max="39" value="0">
+        </label>
+
+        <label>Number of LEDs
+          <input type="number" name="numLeds" min="1" max="2000" value="16" required>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Default Appearance</legend>
+        <label>Brightness (1–255)
+          <input type="number" name="brightness" min="1" max="255" value="255" oninput="this.nextElementSibling.value=this.value"><input type="range" min="1" max="255" value="255" oninput="this.previousElementSibling.value=this.value">
+        </label>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+          <label>R <input type="number" name="r" min="0" max="255" value="196" oninput="this.nextElementSibling.value=this.value"><input type="range" min="0" max="255" value="196" oninput="this.previousElementSibling.value=this.value"></label>
+          <label>G <input type="number" name="g" min="0" max="255" value="32" oninput="this.nextElementSibling.value=this.value"><input type="range" min="0" max="255" value="32" oninput="this.previousElementSibling.value=this.value"></label>
+          <label>B <input type="number" name="b" min="0" max="255" value="8" oninput="this.nextElementSibling.value=this.value"><input type="range" min="0" max="255" value="8" oninput="this.previousElementSibling.value=this.value"></label>
+        </div>
+
+        <label>Default Effect
+          <select name="effect">
+            <option value="0">Solid Color</option>
+            <option value="1">Rainbow</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Misc</legend>
+        <hr class="section-divider">   
+        <label>Extra MDNS tag
+          <input type="text" name="extraMdnsTag" maxlength="15">
+        </label>
+        
+      </fieldset>
+
+      <button type="submit">Save Settings</button>
+    </form>
+  </main>
+  <article id="toast">
+    <header>
+      <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+        <span id="toast-title">💾 Configuration saved</span>
+        <span style="cursor:pointer; opacity:0.7;" onclick="document.getElementById('toast').classList.remove('show')">✕</span>
+      </div>
+    </header>
+    <div class="toast-body">
+      <span class="check-icon" id="toast-icon">✔</span>
+      <span id="toast-msg">Your configuration has been saved successfully.</span>
+    </div>
+  </article>
+  <script>
+      let scanInterval = 3500;
+
+      function setCalibration(gain, r, g, b) {
+          const fields = { 'calGain': gain, 'calRed': r, 'calGreen': g, 'calBlue': b };
+
+          for (const [name, value] of Object.entries(fields)) {
+              const el = document.querySelector(`input[name="${name}"]`);
+              if (el) {
+                  el.value = value;                  
+              }
+          }
+      }
+
+      function toggleCalibration() {
+          const ledTypeSelect = document.getElementById('ledType');
+          const calSection = document.getElementById('whiteCalibration');
+          
+          calSection.style.display = (ledTypeSelect.value === "1") ? "block" : "none";
+      }
+
+      function showToast(isReboot) {
+          const t = document.getElementById('toast');
+          const title = document.getElementById('toast-title');
+          const msg = document.getElementById('toast-msg');
+          const icon = document.getElementById('toast-icon');
+
+          if (isReboot) {
+              title.innerHTML = "🔄 Rebooting...";
+              icon.innerHTML = "⏳";
+              msg.innerHTML = 'Device is restarting to apply changes...';
+              setTimeout(() => { location.reload(); }, 8000);
+          } else {
+              title.innerHTML = "💾 Saved";
+              icon.innerHTML = "✔";
+              msg.innerHTML = "Configuration updated!";
+          }
+
+          t.classList.add('show');
+          setTimeout(() => { t.classList.remove('show'); }, isReboot ? 8000 : 3000);
+      }
+
+      async function scanWifi() {
+          const select = document.getElementById('ssid_select');
+          const customDiv = document.getElementById('custom_ssid_wrapper');
+
+          try {
+            const res = await fetch('/api/wifi_scan?t=' + Date.now());
+
+            if (res.status === 200) {
+                const nets = await res.json();
+
+                let html = '<option value="">-- Select network --</option>';
+
+                nets
+                  .sort((a, b) => b.rssi - a.rssi)
+                  .forEach(n => {
+                    const q = n.rssi > -50  ? 'excellent' :
+                              n.rssi > -60  ? 'very good' :
+                              n.rssi > -70  ? 'good'      :
+                              n.rssi > -80  ? 'fair'      :
+                                              'poor';
+                    html += `<option value="${n.ssid}">${n.ssid} (${n.rssi} dBm – ${q})</option>`;
+                  });
+
+                html += '<option value="CUSTOM">Custom SSID...</option>';
+
+                const prev = select.value;
+                select.innerHTML = html;
+
+                if (prev) select.value = prev;
+
+                scanInterval = 12000;
+            }
+            else if (res.status === 202) {
+                if (select.options[0]) {
+                  select.options[0].text = "Scanning...";
+                }
+                scanInterval = 4000;
+            }
+          }
+          catch (e) {
+              if (select.options[0]) {
+                select.options[0].text = "Connection lost";
+              }
+          }
+
+          setTimeout(scanWifi, scanInterval);
+      }
+
+      async function loadCurrentConfig() {
+          try {
+              const res = await fetch('/api/get_current_config');
+              if (!res.ok) return;
+              const c = await res.json();
+              const l = c.config;
+
+              const fields = ['type', 'dataPin', 'clockPin', 'numLeds', 'brightness', 'r', 'g', 'b', 'effect', 'extraMdnsTag', 'calGain', 'calRed', 'calGreen', 'calBlue'];
+              fields.forEach(field => {
+                  const el = document.querySelector(`[name="${field}"]`);
+                  if (el && l[field] !== undefined){
+                    el.value = l[field];
+                    el.dispatchEvent(new Event('input'));
+                  }
+              });
+
+              toggleCalibration();
+          }
+          catch (e) {
+              console.error("Config load failed:", e);
+          }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+          const select = document.getElementById('ssid_select');
+          const customDiv = document.getElementById('custom_ssid_wrapper');
+          const customInput = document.getElementById('ssid_custom');
+          const ledTypeSelect = document.getElementById('ledType');
+
+          select.addEventListener('change', () => {
+              if (select.value === 'CUSTOM') {
+                  customDiv.style.display = 'block';
+                  setTimeout(() => customInput.focus(), 100);
+                  customInput.required = true;
+              }
+              else {
+                  customDiv.style.display = 'none';
+                  customInput.required = false;
+                  customInput.value = '';
+              }
+          });
+
+          ledTypeSelect.addEventListener('change', toggleCalibration);
+          
+          loadCurrentConfig();
+          scanWifi();          
+      });
+
+      
+      document.querySelector('form[action="/save_wifi"]').addEventListener('submit', e => {
+          const select = document.getElementById('ssid_select');
+          const customInput = document.getElementById('ssid_custom');
+
+          if (select.value === 'CUSTOM' && !customInput.value.trim()) {
+              e.preventDefault();
+
+              let msg = document.getElementById('wifi-error-msg');
+              if (!msg) {
+                  msg = document.createElement('small');
+                  msg.id = 'wifi-error-msg';
+                  msg.className = 'form-error-msg';
+                  document.querySelector('form[action="/save_wifi"] fieldset').appendChild(msg);
+              }
+              msg.textContent = 'Custom SSID is required';
+              customInput.classList.add('error-active');
+              customInput.focus();              
+
+              setTimeout(() => { 
+                  if (msg) msg.textContent = '';
+                  customInput.classList.remove('error-active');
+              }, 5000);
+
+              return;
+          }
+
+          btn.setAttribute('aria-busy', 'true');
+          btn.disabled = true;
+      });
+
+      document.querySelector('form[action="/save_config"]').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const f = e.target, btn = f.querySelector('button');
+          btn.setAttribute('aria-busy', 'true');
+
+          try {
+              const res = await fetch(f.action, { method: 'POST', body: new URLSearchParams(new FormData(f)) });
+              if (res.ok) {
+                  const data = await res.json();
+                  showToast(data.status === 'reboot');
+              }
+          } catch (err) { alert("Error!"); }
+          
+          btn.setAttribute('aria-busy', 'false');
+      });
+</script>
+</body>
+</html>
