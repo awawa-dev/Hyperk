@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Stats - Hyperk</title>
   <link rel="stylesheet" href="/css/pico.min.css?v=1">
-  <link rel="stylesheet" href="/style.css?v=1">
+  <link rel="stylesheet" href="/css/style.css?v=1">
+  <link rel="stylesheet" href="/css/settings.css?v=1">
+  <link id="favicon" rel="icon" type="image/png" href="/img/hyperk.png?v=1">
 </head>
 <body>
   <nav class="container-fluid">
@@ -23,12 +25,11 @@
 
   <main class="container">
     <h1>System Statistics</h1>
-
+    <hr>
     <table>
-      <thead>
-        <tr><th>Parameter</th><th>Value</th></tr>
-      </thead>
+      <thead></thead>
       <tbody>
+        <tr><td>Version</td><td id="stat-version">Loading...</td></tr>
         <tr><td>Device Name</td><td id="stat-device">Loading...</td></tr>
         <tr><td>IP Address</td><td id="stat-ip">Loading...</td></tr>
         <tr><td>Signal Strength</td><td id="stat-rssi">Loading...</td></tr>
@@ -52,7 +53,8 @@
               let h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, s = t % 60;
               let uptime = h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` :
                             m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s}s`;
-              document.getElementById('stat-device').innerText = data.DEVICE;
+              document.getElementById('stat-version').innerText = data.VERSION;
+              document.getElementById('stat-device').innerText = data.DEVICE;              
               document.getElementById('stat-ip').innerText = data.IP;              
               document.getElementById('stat-rssi').innerText = data.RSSI;                                      
               document.getElementById('stat-uptime').innerText = uptime;

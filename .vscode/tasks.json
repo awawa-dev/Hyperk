@@ -1,0 +1,58 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build ESP Core 2.x",
+      "type": "shell",
+      "command": "pio run -e esp32 -e esp32s2 -e esp8266",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "options": {
+        "env": {
+          "PATH": "${userHome}/.platformio/penv/Scripts;${userHome}/.platformio/penv;${env:PATH}",
+          "PYTHONPATH": ""
+        }
+      }
+    },
+    {
+      "label": "Build ESP Core 3.x",
+      "type": "shell",
+      "command": "pio run -e esp32c3 -e esp32s3 -e esp32c6",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "options": {
+        "env": {
+          "PATH": "${userHome}/.platformio/penv/Scripts;${userHome}/.platformio/penv;${env:PATH}",
+          "PYTHONPATH": ""
+        }
+      }
+    },
+    {
+      "label": "Build RP2040",
+      "type": "shell",
+      "command": "pio run -e pico -e pico2",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "options": {
+        "env": {
+          "PATH": "${userHome}/.platformio/penv/Scripts;${userHome}/.platformio/penv;${env:PATH}",
+          "PYTHONPATH": ""
+        }
+      }
+    },
+    {
+      "label": "Build ALL",
+      "dependsOn": [
+        "Build ESP Core 3.x",
+        "Build ESP Core 2.x",        
+        "Build RP2040"
+      ],
+      "dependsOrder": "sequence",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": { "reveal": "always", "panel": "shared" }
+    }
+  ]
+}

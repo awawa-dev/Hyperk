@@ -178,26 +178,37 @@ void initLEDs(LedType cfgLedType, uint16_t cfgLedNumLeds, uint8_t cfgLedDataPin,
                 case 5: FastLED.addLeds<WS2812, 5, GRB>(leds, virtualLedsNumber); break;
                 case 6: FastLED.addLeds<WS2812, 6, GRB>(leds, virtualLedsNumber); break;
                 case 7: FastLED.addLeds<WS2812, 7, GRB>(leds, virtualLedsNumber); break;
+                case 8: FastLED.addLeds<WS2812, 8, GRB>(leds, virtualLedsNumber); break;
+                case 10: FastLED.addLeds<WS2812, 10, GRB>(leds, virtualLedsNumber); break;
+                #if defined(CONFIG_IDF_TARGET_ESP32C6)
                 case 15: FastLED.addLeds<WS2812, 15, GRB>(leds, virtualLedsNumber); break;
-                case 16: FastLED.addLeds<WS2812, 16, GRB>(leds, virtualLedsNumber); break;
-                case 17: FastLED.addLeds<WS2812, 17, GRB>(leds, virtualLedsNumber); break;
                 case 18: FastLED.addLeds<WS2812, 18, GRB>(leds, virtualLedsNumber); break;
                 case 19: FastLED.addLeds<WS2812, 19, GRB>(leds, virtualLedsNumber); break;
+                case 20: FastLED.addLeds<WS2812, 20, GRB>(leds, virtualLedsNumber); break;
+                case 21: FastLED.addLeds<WS2812, 21, GRB>(leds, virtualLedsNumber); break;
+                case 22: FastLED.addLeds<WS2812, 22, GRB>(leds, virtualLedsNumber); break;
+                #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+                case 48: FastLED.addLeds<WS2812, 48, GRB>(leds, virtualLedsNumber); break;
+                #endif
                 default:
                     FastLED.addLeds<WS2812, 2, GRB>(leds, virtualLedsNumber);
                     break;
             }
         }
         else
-        { // SPI (APA102 / SK9822)            
+        { // SPI (APA102 / SK9822)
             switch (cfgLedDataPin) {
-                case 6:  FastLED.addLeds<APA102, 6, 7, BGR>(leds, virtualLedsNumber); break;
-                case 18: FastLED.addLeds<APA102, 18, 19, BGR>(leds, virtualLedsNumber); break;
-                case 0:  FastLED.addLeds<APA102, 0, 1, BGR>(leds, virtualLedsNumber); break;
-                case 4:  FastLED.addLeds<APA102, 4, 5, BGR>(leds, virtualLedsNumber); break;
-                default:
-                    FastLED.addLeds<APA102, 6, 7, BGR>(leds, virtualLedsNumber); 
-                    break;
+                #if defined(CONFIG_IDF_TARGET_ESP32S3)
+                    case 11: FastLED.addLeds<APA102, 11, 12, BGR>(leds, virtualLedsNumber); break;
+                #elif defined(CONFIG_IDF_TARGET_ESP32C3)
+                    case 7:  FastLED.addLeds<APA102, 7, 6, BGR>(leds, virtualLedsNumber); break;
+                #elif defined(CONFIG_IDF_TARGET_ESP32C6)
+                    case 6:  FastLED.addLeds<APA102, 6, 5, BGR>(leds, virtualLedsNumber); break;
+                #endif
+                
+                default:                        
+                        Serial.println("\n!!! FATAL ERROR: Invalid LED Data Pin. Must use Hardware SPI pins. !!!");
+                        FastLED.addLeds<APA102, 7, 6, BGR>(leds, virtualLedsNumber);
             }
         }
     #else

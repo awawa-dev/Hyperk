@@ -1,0 +1,15 @@
+.logo-h {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background: url("/img/hyperk.png") no-repeat center;
+  background-size: contain;
+  vertical-align: middle;
+}
+
+.yperk {
+  color: #E78080;
+}
+.perk {
+  color: #E70000;
+}
