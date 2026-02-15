@@ -2,7 +2,6 @@ name: PlatformIO Build All
 
 on:
   push:
-    branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -18,17 +17,24 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Build cache
+        uses: actions/cache@v5
+        with:
+          key: ${{ runner.os }}-platformio-${{ hashFiles('**/platformio.ini') }}
+          path: |
+            ~/.platformio
+            .pio
+
       - name: Install PlatformIO
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade platformio
 
-      - name: Build All Environments (except ESP32-C6)
-        run: pio run
-
-      - name: Build ESP32-C6
+      - name: Build All Environments
         run: |
-          pio run -e esp32c6
+          pio run -e esp32c3 -e esp32s3 -e esp32c6
+          pio run -e esp32 -e esp32s2 -e esp8266          
+          pio run -e pico -e pico2
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
