@@ -305,6 +305,7 @@ void setupWebServer(AsyncWebServer& server) {
         AsyncResponseStream *response = request->beginResponseStream(mime_application_json);
         JsonDocument doc;
         
+        doc["VERSION"] = APP_VERSION;
         doc["DEVICE"] = cfg.deviceName;
         doc["IP"]     = WiFi.localIP().toString();
         doc["RSSI"]   = String(WiFi.RSSI()) + " dBm";
@@ -342,7 +343,7 @@ void sendEmbeddedFile(AsyncWebServerRequest *request, const uint8_t* content, ui
     {
         response->addHeader(F("Content-Encoding"), F("gzip"));
         response->addHeader(F("Connection"), F("close"));
-        if (strcmp(contentType, "text/css") == 0) 
+        if (strcmp(contentType, "text/css") == 0 || strcmp(contentType, "image/png") == 0) 
         {
             response->addHeader(F("Cache-Control"), F("public, max-age=31536000"));
         }

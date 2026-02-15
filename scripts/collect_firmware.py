@@ -67,6 +67,7 @@ def copy_firmware(target, source, env):
                     print(f">>> [SUCCESS] Factory image: {os.path.basename(factory_path)}")
                 except Exception as e:
                     print(f">>> [ERROR] Merge failed for {env_name}: {e}")
+                    env.Exit(1)
     else:
         print(f">>> [ERROR] File not found: {source_path}")
 
