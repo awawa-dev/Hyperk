@@ -7,12 +7,9 @@ from os.path import exists
 Import("env")
 
 def run_merge_bin(mcu, factory_path, boot_addr, bootloader, partitions, source_path, env):
-    new_syntax_mcus = ["esp32c3", "esp32c6", "esp32h2"]
-    use_new = mcu in new_syntax_mcus
-
-    cmd_name = "merge-bin" if use_new else "merge_bin"
-    f_mode_flag = "--flash-mode" if use_new else "--flash_mode"
-    f_size_flag = "--flash-size" if use_new else "--flash_size"
+    cmd_name = "merge_bin"
+    f_mode_flag = "--flash_mode"
+    f_size_flag = "--flash_size"
 
     cmd = [
         env.subst("$PYTHONEXE"), "-m", "esptool",
@@ -26,7 +23,6 @@ def run_merge_bin(mcu, factory_path, boot_addr, bootloader, partitions, source_p
         "0x10000", source_path
     ]
     
-    print(f">>> [EXEC] Using {'NEW' if use_new else 'OLD'} esptool syntax for {mcu}")
     subprocess.run(cmd, check=True)
 
 def copy_firmware(target, source, env):
@@ -64,8 +60,8 @@ def copy_firmware(target, source, env):
             
             if os.path.exists(bootloader) and os.path.exists(partitions):
                 mcu = env.get("BOARD_MCU", "esp32")
-                boot_addr = "0x0" if mcu in ["esp32s2", "esp32s3", "esp32c3", "esp32c6"] else "0x1000"
-                factory_path = os.path.join(dist_dir, f"Hyperk_{app_version}_{env_name}_factory_flash_at_{boot_addr}.bin")
+                boot_addr = "0x1000" if mcu == "esp32" else "0x0"
+                factory_path = os.path.join(dist_dir, f"Hyperk_{app_version}_{env_name}_factory_flash.bin")
                 try:
                     run_merge_bin(mcu, factory_path, boot_addr, bootloader, partitions, source_path, env)
                     print(f">>> [SUCCESS] Factory image: {os.path.basename(factory_path)}")
