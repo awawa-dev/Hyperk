@@ -170,10 +170,14 @@ void initLEDs(LedType cfgLedType, uint16_t cfgLedNumLeds, uint8_t cfgLedDataPin,
         if (fastLedsType == LedType::WS2812 || fastLedsType == LedType::SK6812)
         {
             switch (cfgLedDataPin) {
+                #if !defined(CONFIG_IDF_TARGET_ESP32S3)
                 case 0: FastLED.addLeds<WS2812, 0, GRB>(leds, virtualLedsNumber); break;
+                #endif
                 case 1: FastLED.addLeds<WS2812, 1, GRB>(leds, virtualLedsNumber); break;
                 case 2: FastLED.addLeds<WS2812, 2, GRB>(leds, virtualLedsNumber); break;
+                #if !defined(CONFIG_IDF_TARGET_ESP32S3)
                 case 3: FastLED.addLeds<WS2812, 3, GRB>(leds, virtualLedsNumber); break;
+                #endif
                 case 4: FastLED.addLeds<WS2812, 4, GRB>(leds, virtualLedsNumber); break;
                 case 5: FastLED.addLeds<WS2812, 5, GRB>(leds, virtualLedsNumber); break;
                 case 6: FastLED.addLeds<WS2812, 6, GRB>(leds, virtualLedsNumber); break;
@@ -188,7 +192,13 @@ void initLEDs(LedType cfgLedType, uint16_t cfgLedNumLeds, uint8_t cfgLedDataPin,
                 case 21: FastLED.addLeds<WS2812, 21, GRB>(leds, virtualLedsNumber); break;
                 case 22: FastLED.addLeds<WS2812, 22, GRB>(leds, virtualLedsNumber); break;
                 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+                case 16: FastLED.addLeds<WS2812, 16, GRB>(leds, virtualLedsNumber); break;
+                case 17: FastLED.addLeds<WS2812, 17, GRB>(leds, virtualLedsNumber); break;
+                case 18: FastLED.addLeds<WS2812, 18, GRB>(leds, virtualLedsNumber); break;
                 case 48: FastLED.addLeds<WS2812, 48, GRB>(leds, virtualLedsNumber); break;
+                #elif defined(CONFIG_IDF_TARGET_ESP32C3)
+                case 20: FastLED.addLeds<WS2812, 20, GRB>(leds, virtualLedsNumber); break;
+                case 21: FastLED.addLeds<WS2812, 21, GRB>(leds, virtualLedsNumber); break;
                 #endif
                 default:
                     FastLED.addLeds<WS2812, 2, GRB>(leds, virtualLedsNumber);

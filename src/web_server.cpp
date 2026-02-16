@@ -258,7 +258,7 @@ void setupWebServer(AsyncWebServer& server) {
 
         if (request->hasParam("extraMdnsTag", true)) {            
             auto val = sanitizeMdnsService(request->getParam("extraMdnsTag", true)->value());
-            needsRestart = (cfg.extraMdnsTag != val);
+            needsRestart = needsRestart || (cfg.extraMdnsTag != val);
             cfg.extraMdnsTag = val;
         }
 
@@ -280,6 +280,8 @@ void setupWebServer(AsyncWebServer& server) {
         AsyncResponseStream *response = request->beginResponseStream(mime_application_json);                
         JsonDocument doc;         
         JsonObject led = doc["config"].to<JsonObject>();
+        led["architecture"] = getDeviceArch();
+        
         led["type"]         = (int)cfg.led.type;
         led["dataPin"]      = cfg.led.dataPin;
         led["clockPin"]     = cfg.led.clockPin;

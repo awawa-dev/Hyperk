@@ -60,6 +60,20 @@
           </select>
         </label>
 
+        <label>Data Pin (GPIO)
+          <select type="number" name="dataPin" required></select>
+        </label>
+
+        <label id="clockPinLabel">Clock Pin (GPIO)
+          <select type="number" name="clockPin"></select>
+        </label>
+
+        <label>Number of LEDs
+          <input type="number" name="numLeds" min="1" max="2000" value="16" required>
+        </label>
+
+        <hr class="section-divider">
+        
         <div id="whiteCalibration" style="display: none;">
           <h5>White channel calibration</h5>
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">            
@@ -72,18 +86,6 @@
           </div>
           <hr class="section-divider">
         </div>
-
-        <label>Data Pin (GPIO)
-          <input type="number" name="dataPin" min="0" max="48" value="2" required>
-        </label>
-
-        <label>Clock Pin (only for SPI LEDs)
-          <input type="number" name="clockPin" min="0" max="39" value="0">
-        </label>
-
-        <label>Number of LEDs
-          <input type="number" name="numLeds" min="1" max="2000" value="16" required>
-        </label>
       </fieldset>
 
       <fieldset>
@@ -132,6 +134,84 @@
   </article>
   <script>
       let scanInterval = 3500;
+      let cfgDeviceArchitecture = "";
+
+      function setupPinValidator() {
+          const hardwareLimits = {
+              "ESP32-C6": { gpio: [0,1,2,3,4,5,6,7,8,10,15,18,19,20,21,22], spi: {6:5} },
+              "ESP32-S3": { gpio: [1,2,4,5,6,7,8,10,16,17,18,48], spi: {11:12} },
+              "ESP32-C3": { gpio: [0,1,2,3,4,5,6,7,8,10,20,21], spi: {7:6} },
+              "ESP8266":  { gpio: [2],                       spi: {19:18} },
+              "ESP32":    { gpio: null,                      spi: {23:18} },
+              "ESP32-S2": { gpio: null,                      spi: {19:18} }
+          };
+          
+          const arch = (typeof cfgDeviceArchitecture !== 'undefined') ? cfgDeviceArchitecture : "";
+          const els = { type: document.getElementById('ledType'), clkLabel: document.getElementById('clockPinLabel') };
+
+          if (!els.type || !els.clkLabel) {
+              console.warn("LED Validator: Missing required DOM elements (ledType/clockPinLabel)");
+              return;
+          }
+
+          // Re-add ARIA-live to clkLabel for better accessibility during dynamic updates
+          els.clkLabel.setAttribute('aria-live', 'polite');
+
+          const setField = (name, opts) => {
+              const old = document.getElementsByName(name)[0];
+              if (!old) return null;
+              
+              const isSel = (opts != null);
+              const signature = "sig_" + JSON.stringify(opts);
+
+              if ((old.tagName === 'SELECT') === isSel && old.dataset.sig === signature) return old;
+
+              // Remember focus state
+              const wasFocused = (document.activeElement === old);
+
+              const el = isSel ? document.createElement('select') : Object.assign(document.createElement('input'), {
+                  type: 'number', min: 0, max: (arch.includes('8266') ? 16 : 48), step: '1'
+              });
+              
+              el.name = name; el.id = old.id; el.required = true;
+              el.dataset.sig = signature;
+
+              if (isSel) {
+                  opts.forEach(p => el.add(new Option(`GPIO ${p}`, p)));
+                  el.value = opts.includes(parseInt(old.value)) ? old.value : opts[0];
+                  // If only one option, disable for clarity and add tooltip
+                  if (opts.length === 1) { 
+                      el.disabled = true;
+                      el.title = "Only one valid GPIO for this mode/architecture"; 
+                  }
+              } else {
+                  el.value = old.value || 0;
+              }
+
+              old.replaceWith(el);
+              el.addEventListener('change', updateUI); 
+              
+              if (wasFocused) el.focus(); // Restore focus
+              return el;
+          };
+
+          function updateUI() {
+              const isSpi = els.type.value == "2";
+              const cfg = hardwareLimits[arch];
+
+              let validPins = cfg ? (isSpi ? Object.keys(cfg.spi).map(Number) : cfg.gpio) : null;
+              const dataPinEditor = setField('dataPin', validPins);
+              
+              const autoClk = (cfg && cfg.spi) ? (cfg.spi[dataPinEditor.value] ?? null) : null;
+              const clockPinEditor = setField('clockPin', ((autoClk !== null) ? [autoClk] : null)); 
+
+              els.clkLabel.style.display = isSpi ? 'block' : 'none';
+              clockPinEditor.disabled = clockPinEditor.disabled || !isSpi;
+          }
+
+          els.type.onchange = updateUI;
+          updateUI(); 
+      }
 
       function setCalibration(gain, r, g, b) {
           const fields = { 'calGain': gain, 'calRed': r, 'calGreen': g, 'calBlue': b };
@@ -227,16 +307,26 @@
               const c = await res.json();
               const l = c.config;
 
+              const archField = l["architecture"];              
+              if (archField !== undefined){
+                  cfgDeviceArchitecture = archField;                  
+              }              
+
               const fields = ['type', 'dataPin', 'clockPin', 'numLeds', 'brightness', 'r', 'g', 'b', 'effect', 'extraMdnsTag', 'calGain', 'calRed', 'calGreen', 'calBlue'];
               fields.forEach(field => {
                   const el = document.querySelector(`[name="${field}"]`);
                   if (el && l[field] !== undefined){
+                    if (field == 'dataPin' || field == 'clockPin')
+                    {
+                        el.add(new Option(`GPIO ${l[field]}`, l[field]));
+                    }
                     el.value = l[field];
                     el.dispatchEvent(new Event('input'));
                   }
               });
 
               toggleCalibration();
+              setupPinValidator();
           }
           catch (e) {
               console.error("Config load failed:", e);
