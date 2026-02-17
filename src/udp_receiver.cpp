@@ -30,6 +30,7 @@
 #include "udp_receiver.h"
 #include "config.h"
 #include "leds.h"
+#include "volatile_state.h"
 
 namespace {
     struct DDPHeader {
@@ -58,6 +59,16 @@ void handleDDP(WiFiUDP& udp) {
         return;
     }
 
+    #ifdef USE_FASTLED
+        const bool brightnessControl = false;
+        auto setPixel = Leds::setLed<false>;
+        auto setPixelW = Leds::setLedW<false>;
+    #else
+        const bool brightnessControl = (Volatile::state.brightness != 255);
+        auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
+        auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
+    #endif     
+
     uint8_t buffer[packetSize];    
     uint8_t* endBuffer = &(buffer[0]) + udp.read(buffer, packetSize);        
     DDPHeader* hdr = reinterpret_cast<DDPHeader*>(&(buffer[0]));
@@ -72,7 +83,7 @@ void handleDDP(WiFiUDP& udp) {
         char info[128];
         int infoLen = snprintf(info, sizeof(info),
                                "1;%d;%s;%s;%s;%d;4048", 
-                               1, APP_NAME, "PicoESP", APP_VERSION, getLedsNumber());
+                               1, APP_NAME, "PicoESP", APP_VERSION, Leds::getLedsNumber());
 
         hdr->len = __builtin_bswap16(infoLen);
 
@@ -96,25 +107,25 @@ void handleDDP(WiFiUDP& udp) {
 
     const int bytesPerLed = ((hdr->type & 0x38) == 0x18 || hdr->type == 0x03) ? 4 : 3;
     const int offset = channelOffset / bytesPerLed;
-    const int maxLedNumber = getLedsNumber();
+    const int maxLedNumber = Leds::getLedsNumber();
 
     if (bytesPerLed == 4)
     {
         for (int i = offset; rgb + 3 < endBuffer && i < maxLedNumber; rgb += 4)
-            setLed(i++, rgb[0], rgb[1], rgb[2], rgb[3]);        
+            setPixelW(i++, rgb[0], rgb[1], rgb[2], rgb[3]);        
     }
     else
     {
         for (int i = offset; rgb + 2 < endBuffer && i < maxLedNumber; rgb += 3)
-            setLed(i++, rgb[0], rgb[1], rgb[2]);
+            setPixel(i++, rgb[0], rgb[1], rgb[2]);
     }
 
     if (hdr->flags & 0x01) {
-        renderLed(true);
+        Leds::renderLed(true);
     }
 }
 
-void handleRealTime(WiFiUDP& udp) {
+void handleRealTime(WiFiUDP& udp) {    
     int packetSize = udp.parsePacket();
     if (packetSize < 5 || packetSize >= MTU_SIZE)
     {
@@ -122,18 +133,28 @@ void handleRealTime(WiFiUDP& udp) {
         return;
     }
 
+    #ifdef USE_FASTLED
+        const bool brightnessControl = false;
+        auto setPixel = Leds::setLed<false>;
+        auto setPixelW = Leds::setLedW<false>;
+    #else
+        const bool brightnessControl = (Volatile::state.brightness != 255);
+        auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
+        auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
+    #endif     
+
     uint8_t buffer[packetSize]; 
     uint8_t* endBuffer = &(buffer[0]) + udp.read(buffer, packetSize);    
 
     const uint8_t protocolType = buffer[0];
-    const int maxLedNumber = getLedsNumber();
+    const int maxLedNumber = Leds::getLedsNumber();
     const uint8_t* rgb = nullptr;
 
     // 0x01 = WARLS, 0x02 = DNRGB, 0x04 = DRGB (indexed), 0x03 = DRGBW support (RGBW)    
     if (protocolType == 0x02) {
         rgb = &(buffer[2]);
         for (int i = 0; rgb + 2 < endBuffer && i < maxLedNumber; rgb += 3) {
-            setLed(i++, rgb[0], rgb[1], rgb[2]);
+            setPixel(i++, rgb[0], rgb[1], rgb[2]);
         }
     }
     else if (protocolType == 0x04) {        
@@ -151,19 +172,19 @@ void handleRealTime(WiFiUDP& udp) {
         }
 
         for (int i = offset; rgb + 2 < endBuffer && i < maxLedNumber; rgb += 3) {
-            setLed(i++, rgb[0], rgb[1], rgb[2]);
+            setPixel(i++, rgb[0], rgb[1], rgb[2]);
         }
     }
     else if (protocolType == 0x03) { // DRGBW support (r, g, b, w...)
         rgb = &(buffer[2]);
         for (int i = 0; rgb + 3 < endBuffer && i < maxLedNumber; rgb += 4) {
-            setLed(i++, rgb[0], rgb[1], rgb[2], rgb[3]);
+            setPixelW(i++, rgb[0], rgb[1], rgb[2], rgb[3]);
         }
     }
     else
         return;
 
-    renderLed(true);
+    Leds::renderLed(true);
 }
 
 void handleRAW(WiFiUDP& udp)
@@ -175,15 +196,25 @@ void handleRAW(WiFiUDP& udp)
         return;
     }
 
+    #ifdef USE_FASTLED
+        const bool brightnessControl = false;
+        auto setPixel = Leds::setLed<false>;
+        auto setPixelW = Leds::setLedW<false>;
+    #else
+        const bool brightnessControl = (Volatile::state.brightness != 255);
+        auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
+        auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
+    #endif    
+
     uint8_t buffer[packetSize]; 
     uint8_t* endBuffer = &(buffer[0]) + udp.read(buffer, packetSize);    
 
-    const int maxLedNumber = getLedsNumber();
+    const int maxLedNumber = Leds::getLedsNumber();
     const uint8_t* rgb = &(buffer[0]);
 
     for (int i = 0; rgb + 2 < endBuffer && i < maxLedNumber; rgb += 3) {
-        setLed(i++, rgb[0], rgb[1], rgb[2]);
+        setPixel(i++, rgb[0], rgb[1], rgb[2]);
     }
 
-    renderLed(true);
+    Leds::renderLed(true);
 }

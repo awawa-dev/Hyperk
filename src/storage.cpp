@@ -28,72 +28,75 @@
 #include "storage.h"
 #include <LittleFS.h>
 
-bool loadConfig(AppConfig& cfg) {
-    if (!LittleFS.exists(CONFIG_FILE)) {
-        Serial.println("No config file → creating default");
-        return saveConfig(cfg);
+namespace Storage {
+
+    bool loadConfig(AppConfig& cfg) {
+        if (!LittleFS.exists(CONFIG_FILE)) {
+            Log::debug("No config file → creating default");
+            return saveConfig(cfg);
+        }
+
+        File file = LittleFS.open(CONFIG_FILE, "r");
+        JsonDocument doc;
+        DeserializationError err = deserializeJson(doc, file);
+        file.close();
+
+        if (err) {
+            Log::debug("JSON parse error");
+            return false;
+        }
+
+        cfg.wifi.ssid     = doc["wifi"]["ssid"] | "";
+        cfg.wifi.password = doc["wifi"]["password"] | "";
+        cfg.deviceName    = doc["deviceName"] | APP_NAME;
+        cfg.extraMdnsTag  = doc["extraMdnsTag"] | "WLED";
+
+        cfg.led.type       = static_cast<LedType>(doc["led"]["type"] | static_cast<int>(LedType::WS2812));
+        cfg.led.dataPin    = doc["led"]["dataPin"]    | 2;
+        cfg.led.clockPin   = doc["led"]["clockPin"]   | 0;
+        cfg.led.numLeds    = doc["led"]["numLeds"]    | 16;
+        cfg.led.brightness = doc["led"]["brightness"] | 255;
+        cfg.led.r          = doc["led"]["r"] | 196;
+        cfg.led.g          = doc["led"]["g"] | 32;
+        cfg.led.b          = doc["led"]["b"] | 8;
+        cfg.led.effect     = doc["led"]["effect"] | 0;
+
+        cfg.led.calibration.gain  = doc["calibration"]["gain"]  | 0xFF;
+        cfg.led.calibration.red   = doc["calibration"]["red"]   | 0xA0;
+        cfg.led.calibration.green = doc["calibration"]["green"] | 0xA0;
+        cfg.led.calibration.blue  = doc["calibration"]["blue"]  | 0xA0;
+
+        return true;
     }
 
-    File file = LittleFS.open(CONFIG_FILE, "r");
-    JsonDocument doc;
-    DeserializationError err = deserializeJson(doc, file);
-    file.close();
+    bool saveConfig(const AppConfig& cfg) {
+        JsonDocument doc;
 
-    if (err) {
-        Serial.println("JSON parse error");
-        return false;
+        doc["wifi"]["ssid"]     = cfg.wifi.ssid;
+        doc["wifi"]["password"] = cfg.wifi.password;
+        doc["deviceName"]       = cfg.deviceName;
+        doc["extraMdnsTag"]        = cfg.extraMdnsTag;
+
+        doc["led"]["type"]       = static_cast<uint8_t>(cfg.led.type);
+        doc["led"]["dataPin"]    = cfg.led.dataPin;
+        doc["led"]["clockPin"]   = cfg.led.clockPin;
+        doc["led"]["numLeds"]    = cfg.led.numLeds;
+        doc["led"]["brightness"] = cfg.led.brightness;
+        doc["led"]["r"]          = cfg.led.r;
+        doc["led"]["g"]          = cfg.led.g;
+        doc["led"]["b"]          = cfg.led.b;
+        doc["led"]["effect"]     = cfg.led.effect;
+
+        doc["calibration"]["gain"]  = cfg.led.calibration.gain;
+        doc["calibration"]["red"]   = cfg.led.calibration.red;
+        doc["calibration"]["green"] = cfg.led.calibration.green;
+        doc["calibration"]["blue"]  = cfg.led.calibration.blue;
+
+        File file = LittleFS.open(CONFIG_FILE, "w");
+        if (!file) return false;
+        serializeJson(doc, file);
+        file.flush();
+        file.close();
+        return true;
     }
-
-    cfg.wifi.ssid     = doc["wifi"]["ssid"] | "";
-    cfg.wifi.password = doc["wifi"]["password"] | "";
-    cfg.deviceName    = doc["deviceName"] | APP_NAME;
-    cfg.extraMdnsTag  = doc["extraMdnsTag"] | "WLED";
-
-    cfg.led.type       = static_cast<LedType>(doc["led"]["type"] | static_cast<int>(LedType::WS2812));
-    cfg.led.dataPin    = doc["led"]["dataPin"]    | 2;
-    cfg.led.clockPin   = doc["led"]["clockPin"]   | 0;
-    cfg.led.numLeds    = doc["led"]["numLeds"]    | 16;
-    cfg.led.brightness = doc["led"]["brightness"] | 255;
-    cfg.led.r          = doc["led"]["r"] | 196;
-    cfg.led.g          = doc["led"]["g"] | 32;
-    cfg.led.b          = doc["led"]["b"] | 8;
-    cfg.led.effect     = doc["led"]["effect"] | 0;
-
-    cfg.led.calibration.gain  = doc["calibration"]["gain"]  | 0xFF;
-    cfg.led.calibration.red   = doc["calibration"]["red"]   | 0xA0;
-    cfg.led.calibration.green = doc["calibration"]["green"] | 0xA0;
-    cfg.led.calibration.blue  = doc["calibration"]["blue"]  | 0xA0;
-
-    return true;
-}
-
-bool saveConfig(const AppConfig& cfg) {
-    JsonDocument doc;
-
-    doc["wifi"]["ssid"]     = cfg.wifi.ssid;
-    doc["wifi"]["password"] = cfg.wifi.password;
-    doc["deviceName"]       = cfg.deviceName;
-    doc["extraMdnsTag"]        = cfg.extraMdnsTag;
-
-    doc["led"]["type"]       = static_cast<uint8_t>(cfg.led.type);
-    doc["led"]["dataPin"]    = cfg.led.dataPin;
-    doc["led"]["clockPin"]   = cfg.led.clockPin;
-    doc["led"]["numLeds"]    = cfg.led.numLeds;
-    doc["led"]["brightness"] = cfg.led.brightness;
-    doc["led"]["r"]          = cfg.led.r;
-    doc["led"]["g"]          = cfg.led.g;
-    doc["led"]["b"]          = cfg.led.b;
-    doc["led"]["effect"]     = cfg.led.effect;
-
-    doc["calibration"]["gain"]  = cfg.led.calibration.gain;
-    doc["calibration"]["red"]   = cfg.led.calibration.red;
-    doc["calibration"]["green"] = cfg.led.calibration.green;
-    doc["calibration"]["blue"]  = cfg.led.calibration.blue;
-
-    File file = LittleFS.open(CONFIG_FILE, "w");
-    if (!file) return false;
-    serializeJson(doc, file);
-    file.flush();
-    file.close();
-    return true;
-}
+};

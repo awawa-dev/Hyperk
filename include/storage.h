@@ -3,5 +3,7 @@
 #pragma once
 #include "config.h"
 
-bool loadConfig(AppConfig& cfg);
-bool saveConfig(const AppConfig& cfg);
+namespace Storage {
+    bool loadConfig(AppConfig& cfg);
+    bool saveConfig(const AppConfig& cfg);
+};

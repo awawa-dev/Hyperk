@@ -50,14 +50,15 @@ void managerScheduleReboot(uint32_t delay_ms)
     _rebootTime = millis() + delay_ms;
     _pendingReboot = true;
 
-    Serial.println("--- REBOOT SCHEDULED ---");
-    Serial.print("Current millis: "); Serial.println(millis());
-    Serial.print("Reboot target : "); Serial.println(_rebootTime);
+    Log::debug("--- REBOOT SCHEDULED ---");
+    Log::debug("Current millis: ", millis());
+    Log::debug("Reboot target : ", _rebootTime);
 }
 
 void managerLoop()
 {
-    checkDeleyedRender();
+    Leds::synchronizeLedsToVolatileStateBeforeDeleyedRender();
+    Leds::checkDeleyedRender();
 
     if (_pendingReboot && millis() >= _rebootTime)
     {
@@ -67,7 +68,7 @@ void managerLoop()
     if (_pendingApplyConfig && !_pendingReboot)
     {
         _pendingApplyConfig = false;
-        applyLedConfig();    
+        Leds::applyLedConfig();    
     }
 
     uint32_t currentTag = millis() / 1000;   

@@ -22,7 +22,10 @@ def run_merge_bin(mcu, factory_path, boot_addr, bootloader, partitions, source_p
         "0x8000", partitions,
         "0x10000", source_path
     ]
-    
+    full_cmd_str = " ".join(cmd)
+    print(">>> [MERGING] merge_bin:")
+    print(full_cmd_str)
+    print("-" * 50)
     subprocess.run(cmd, check=True)
 
 def copy_firmware(target, source, env):
@@ -49,25 +52,27 @@ def copy_firmware(target, source, env):
     if os.path.exists(source_path):
         # 1. Kopiowanie OTA
         dest_name = f"Hyperk_{app_version}_{env_name}{ext}"
-        dest_path = os.path.join(dist_dir, dest_name)
-        shutil.copy2(source_path, dest_path)
-        print(f">>> [COPY] {dest_name}")
+        dest_path = os.path.join(dist_dir, dest_name)                
 
         # 2. Factory Merge
-        if ext == ".bin" and "esp" in env_name:            
+        if ext == ".bin" and "esp" in env_name and "esp8266" not in env_name:            
             bootloader = os.path.join(build_dir, "bootloader.bin")
             partitions = os.path.join(build_dir, "partitions.bin")
             
             if os.path.exists(bootloader) and os.path.exists(partitions):
-                mcu = env.get("BOARD_MCU", "esp32")
-                boot_addr = "0x1000" if mcu == "esp32" else "0x0"
-                factory_path = os.path.join(dist_dir, f"Hyperk_{app_version}_{env_name}_factory_flash.bin")
+                mcu = env.get("BOARD_MCU", "esp32")                
+                factory_path = os.path.join(dist_dir, f"Hyperk_{app_version}_{env_name}_factory.bin")
+                boot_addr = "0x1000" if mcu in ["esp32", "esp32s2"] else "0x0"
                 try:
                     run_merge_bin(mcu, factory_path, boot_addr, bootloader, partitions, source_path, env)
                     print(f">>> [SUCCESS] Factory image: {os.path.basename(factory_path)}")
                 except Exception as e:
                     print(f">>> [ERROR] Merge failed for {env_name}: {e}")
                     env.Exit(1)
+        else:
+            shutil.copy2(source_path, dest_path)
+            print(f">>> [SUCCESS] Copy: {dest_name}")
+
     else:
         print(f">>> [ERROR] File not found: {source_path}")
 

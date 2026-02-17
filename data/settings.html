@@ -29,93 +29,95 @@
 
     <!-- WiFi settings -->
     <form action="/save_wifi" method="POST">
-      <fieldset>
-        <legend>WiFi Configuration</legend>
-        <hr class="section-divider">
-        <label for="ssid_select">SSID:</label>
-        <select name="ssid" id="ssid_select" required>
-          <option value="">Scanning...</option>
-        </select>
-        <div id="custom_ssid_wrapper" style="display:none; margin-top:8px;">
-          <label for="ssid_custom">Custom SSID:</label>
-          <input type="text" name="ssid_custom" id="ssid_custom" placeholder="Enter custom SSID">
+      <details id="wifi_configuration_page" style="display: none;">
+        <summary role="button" class="outline secondary">WiFi Configuration</summary>
+        <div>
+          <label for="ssid_select">SSID:</label>
+          <select name="ssid" id="ssid_select" required>
+            <option value="">Scanning...</option>
+          </select>
+          <div id="custom_ssid_wrapper" style="display:none; margin-top:8px;">
+            <label for="ssid_custom">Custom SSID:</label>
+            <input type="text" name="ssid_custom" id="ssid_custom" placeholder="Enter custom SSID">
+          </div>
+          <label>Password <input type="password" name="pass" required></label>
+          <button type="submit">Save WiFi & Restart</button>
         </div>
-        <label>Password <input type="password" name="pass" required></label>
-        <button type="submit">Save WiFi & Restart</button>
-      </fieldset>
+      </details>
     </form>
-
-    <hr>
 
     <!-- Settings -->
     <form action="/save_config" method="POST">
-      <fieldset>
-        <legend>LED Strip</legend>
-        <hr class="section-divider">
-        <label>LED Type
-          <select id="ledType" name="type" required>
-            <option value="0">WS2812B NeoPixel (RGB)</option>
-            <option value="1">SK6812 NeoPixel (RGBW)</option>
-            <option value="2">APA102 DotStar SPI (RGB)</option>
-          </select>
-        </label>
+      <details>
+        <summary role="button" class="outline secondary">LED Hardware</summary>
+        <div>
+          <label>LED type
+            <select id="ledType" name="type" required>
+              <option value="0">WS2812B NeoPixel (RGB)</option>
+              <option value="1">SK6812 NeoPixel (RGBW)</option>
+              <option value="2">APA102 DotStar SPI (RGB)</option>
+            </select>
+          </label>
 
-        <label>Data Pin (GPIO)
-          <select type="number" name="dataPin" required></select>
-        </label>
+          <label>Data Pin (GPIO)
+            <select type="number" name="dataPin" required></select>
+          </label>
 
-        <label id="clockPinLabel">Clock Pin (GPIO)
-          <select type="number" name="clockPin"></select>
-        </label>
+          <label id="clockPinLabel">Clock Pin (GPIO)
+            <select type="number" name="clockPin"></select>
+          </label>
 
-        <label>Number of LEDs
-          <input type="number" name="numLeds" min="1" max="2000" value="16" required>
-        </label>
-
-        <hr class="section-divider">
+          <label>Number of LEDs
+            <input type="number" name="numLeds" min="1" max="2000" value="16" required>
+          </label>          
         
-        <div id="whiteCalibration" style="display: none;">
-          <h5>White channel calibration</h5>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">            
-            <label>R <input type="number" name="calRed" min="0" max="255" value="160"></label>
-            <label>G <input type="number" name="calGreen" min="0" max="255" value="160"></label>
-            <label>B <input type="number" name="calBlue" min="0" max="255" value="160"></label>
-            <label>White <input type="number" name="calGain" min="0" max="255" value="255"></label>
-            <button type="button" onclick="setCalibration(255, 160, 160, 160)">Set Cold</button>
-            <button type="button" onclick="setCalibration(255, 176, 176, 112)">Set Neutral</button>
+          <div id="whiteCalibration" style="display: none;">
+            <hr class="section-divider">
+            <h5>White channel calibration</h5>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">            
+              <label>R <input type="number" name="calRed" min="0" max="255" value="160"></label>
+              <label>G <input type="number" name="calGreen" min="0" max="255" value="160"></label>
+              <label>B <input type="number" name="calBlue" min="0" max="255" value="160"></label>
+              <label>White <input type="number" name="calGain" min="0" max="255" value="255"></label>
+              <button type="button" onclick="setCalibration(255, 160, 160, 160)">Set Cold</button>
+              <button type="button" onclick="setCalibration(255, 176, 176, 112)">Set Neutral</button>
+            </div>
           </div>
-          <hr class="section-divider">
         </div>
-      </fieldset>
+      </details>
 
-      <fieldset>
-        <legend>Default Appearance</legend>
-        <label>Brightness (1–255)
-          <input type="number" name="brightness" min="1" max="255" value="255" oninput="this.nextElementSibling.value=this.value"><input type="range" min="1" max="255" value="255" oninput="this.previousElementSibling.value=this.value">
-        </label>
+      <details>
+        <summary role="button" class="outline secondary">Light Preset</summary>
+        <div>
+          <label>Brightness (1–255)
+            <input type="number" name="brightness" min="1" max="255" value="255" oninput="this.nextElementSibling.value=this.value"><input type="range" min="1" max="255" value="255" oninput="this.previousElementSibling.value=this.value">
+          </label>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
-          <label>R <input type="number" name="r" min="0" max="255" value="196" oninput="this.nextElementSibling.value=this.value"><input type="range" min="0" max="255" value="196" oninput="this.previousElementSibling.value=this.value"></label>
-          <label>G <input type="number" name="g" min="0" max="255" value="32" oninput="this.nextElementSibling.value=this.value"><input type="range" min="0" max="255" value="32" oninput="this.previousElementSibling.value=this.value"></label>
-          <label>B <input type="number" name="b" min="0" max="255" value="8" oninput="this.nextElementSibling.value=this.value"><input type="range" min="0" max="255" value="8" oninput="this.previousElementSibling.value=this.value"></label>
+          <label>Default Color
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+              <label>R <input type="number" name="r" min="0" max="255" value="196" oninput="this.nextElementSibling.value=this.value"><input type="range" min="0" max="255" value="196" oninput="this.previousElementSibling.value=this.value"></label>
+              <label>G <input type="number" name="g" min="0" max="255" value="32" oninput="this.nextElementSibling.value=this.value"><input type="range" min="0" max="255" value="32" oninput="this.previousElementSibling.value=this.value"></label>
+              <label>B <input type="number" name="b" min="0" max="255" value="8" oninput="this.nextElementSibling.value=this.value"><input type="range" min="0" max="255" value="8" oninput="this.previousElementSibling.value=this.value"></label>
+            </div>
+          </label>
+
+          <label>Default Effect
+            <select name="effect">
+              <option value="0">Solid Color</option>
+              <option value="1">Rainbow</option>
+            </select>
+          </label>
         </div>
+      </details>
 
-        <label>Default Effect
-          <select name="effect">
-            <option value="0">Solid Color</option>
-            <option value="1">Rainbow</option>
-          </select>
-        </label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Misc</legend>
-        <hr class="section-divider">   
-        <label>Extra MDNS tag
-          <input type="text" name="extraMdnsTag" maxlength="15">
-        </label>
-        
-      </fieldset>
+      <details>
+        <summary role="button" class="outline secondary">Network</summary>
+        <div>
+          <label>Extra MDNS tag
+            <input type="text" name="extraMdnsTag" maxlength="15">
+          </label>
+        </div>
+      </details>
 
       <button type="submit">Save Settings</button>
     </form>
@@ -325,6 +327,10 @@
                   }
               });
 
+              if (l["apMode"] === true) {
+                  document.getElementById("wifi_configuration_page").style.display = "block";
+              }
+
               toggleCalibration();
               setupPinValidator();
           }
@@ -371,7 +377,10 @@
                   msg = document.createElement('small');
                   msg.id = 'wifi-error-msg';
                   msg.className = 'form-error-msg';
-                  document.querySelector('form[action="/save_wifi"] fieldset').appendChild(msg);
+                  const container = document.querySelector('#wifi-section > div') || document.querySelector('#wifi-section');
+                  if (container) {
+                      container.appendChild(msg);
+                  }
               }
               msg.textContent = 'Custom SSID is required';
               customInput.classList.add('error-active');

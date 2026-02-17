@@ -66,26 +66,34 @@ String sanitizeMdnsService(String s) {
 
     if (j > 0)
     {
-        Serial.print("Registering MDNS service: "); Serial.println(buf);
+        Log::debug("Validated MDNS service name: ", buf);
         return String(buf);
     }
     else
     {
-        Serial.print("MDNS service name is invalid: "); Serial.println(s);
+        Log::debug("MDNS service name is invalid: ", s);
         return String("invalid-name");
     }
 }
 
 void startMDNS()
 {
+    const AppConfig& cfg = Config::cfg;
+
     if (MDNS.begin(cfg.deviceName.c_str()))
     {
+        String macId = WiFi.macAddress();
+        macId.replace(":", "");
+        macId.toLowerCase();
+
         // 1. Extra mdns tag
         if (cfg.extraMdnsTag.length() > 0)
         {
             auto extraMDNS = sanitizeMdnsService(cfg.extraMdnsTag);
             MDNS.addService(extraMDNS, "tcp", 80);
-            MDNS.addServiceTxt(extraMDNS, "tcp", "model", (APP_NAME "-" + getDeviceArch()).c_str());
+            MDNS.addServiceTxt(extraMDNS, "tcp", "id", macId.c_str());
+            String fullModelName = String(APP_NAME) + "-" + String(APP_VERSION);
+            MDNS.addServiceTxt(extraMDNS, "tcp", "mdl", fullModelName.c_str());            
             MDNS.addServiceTxt(extraMDNS, "tcp", "mac", WiFi.macAddress().c_str());
             MDNS.addServiceTxt(extraMDNS, "tcp", "src", "udp");
         }
@@ -94,14 +102,12 @@ void startMDNS()
         auto ourMDNS = sanitizeMdnsService(APP_NAME);
         MDNS.addService(ourMDNS, "tcp", 80);        
         MDNS.addServiceTxt(ourMDNS, "tcp", "ver", APP_VERSION);
+        MDNS.addServiceTxt(ourMDNS, "tcp", "id", macId.c_str());
 
         MDNS.addService("ddp", "udp", 4048);
         MDNS.addService("realtime", "udp", 21324);
         MDNS.addService("raw", "udp", 5568);
 
-        Serial.printf("mDNS: %s.local (%s v%s)\n", 
-                      cfg.deviceName.c_str(), 
-                      APP_NAME, 
-                      APP_VERSION);
+        Log::debug("mDNS: ", cfg.deviceName, ".local (", APP_NAME, " v", APP_VERSION, ")");
     }
 }
