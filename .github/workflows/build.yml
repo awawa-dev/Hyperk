@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -34,3 +36,13 @@ jobs:
           name: Hyperk-Firmware-Pack
           path: release/
           if-no-files-found: error
+
+      - name: Create Pre-release
+        if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          files: release/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
