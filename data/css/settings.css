@@ -94,3 +94,20 @@ hr.section-divider {
         transparent
     );
 }
+
+details > div {
+    padding-top: 1rem;
+}
+
+details summary[role="button"] {
+    background-color: #6a2525;
+    border-color: #7a2525;
+    color: #F0F1F3;
+}
+
+details summary[role="button"]:hover,
+details summary[role="button"]:focus {
+    background-color: #7a2525;
+    border-color: #8a2525;
+    color: #F5F5F8
+}

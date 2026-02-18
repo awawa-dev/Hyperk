@@ -1,4 +1,4 @@
-/* config.cpp
+/* volatile_state.cpp
 *
 *  MIT License
 *
@@ -24,21 +24,49 @@
 *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 *  SOFTWARE.
 */
-
-#include "config.h"
-#include "storage.h"
 #include "volatile_state.h"
 
-namespace Config {
-    AppConfig internalCfg;
-    const AppConfig& cfg = internalCfg;
+namespace Volatile{
+    static VolatileState internalState;
+    const VolatileState& state = internalState;
 
-    bool loadConfig() {
-        return Storage::loadConfig(internalCfg);
-    }
+    bool updatedBrightness = false;
+    bool updatedPowerOn = false;
+    bool updatedStaticColor = false;
 
-    bool saveConfig(const AppConfig& cfg) {
-        internalCfg = cfg;
-        return Storage::saveConfig(internalCfg);
-    }
-};
+    void updateBrightness(uint8_t  brightness){
+        internalState.brightness = brightness;
+        updatedBrightness = true;
+    };
+
+    void updatePowerOn(bool on){
+        internalState.on = on;
+        updatedPowerOn = true;
+    };
+
+    void updateStaticColor(uint8_t red, uint8_t green, uint8_t blue){
+        internalState.staticColor.red = red;
+        internalState.staticColor.green = green;
+        internalState.staticColor.blue = blue;
+        updatedStaticColor = true;
+    };
+
+    bool clearUpdatedBrightnessState(){
+        bool ret = updatedBrightness;
+        updatedBrightness = false;
+        return ret;
+    };
+
+    bool clearUpdatedPowerOnState(){
+        bool ret = updatedPowerOn;
+        updatedPowerOn = false;
+        return ret;
+    };
+
+    bool clearUpdatedStaticColorState(){
+        bool ret = updatedStaticColor;
+        updatedStaticColor = false;
+        return ret;
+    };
+}
+

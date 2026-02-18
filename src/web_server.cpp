@@ -41,6 +41,7 @@
 #include "manager.h"
 #include "mdns_service.h"
 #include "web_resources.h"
+#include "uni_json_api.h"
 
 namespace {
     constexpr auto mime_application_json = "application/json";
@@ -50,91 +51,32 @@ namespace {
 
 void setupStaticHandlers(AsyncWebServer& server);
 
-void dummyApi(JsonDocument& doc, bool onlyState)
-{
-    // 1. STATE
-    JsonObject state = onlyState ? doc.to<JsonObject>() : doc["state"].to<JsonObject>();
-    state["on"]  = true;
-    state["bri"] = cfg.led.brightness;
-    state["mainseg"] = 0;
-    state["live"] = true;
-
-    if (onlyState)
-        return;
-
-    // 2. INFO
-    JsonObject info = doc["info"].to<JsonObject>();
-    info["ver"]  = F("0.14.4");
-    info["vid"]  = 2310130;
-    info["leds"]["count"] = getLedsNumber();
-    info["name"] = cfg.deviceName;
-    info["product"] = F(APP_NAME);
-    info["uptime"] = millis() / 1000;
-    info["arch"] = getDeviceArch();
-
-    // 2. WIFI
-    JsonObject wifi = info["wifi"].to<JsonObject>();
-    int32_t rssi = WiFi.RSSI();
-    wifi["rssi"] = rssi;
-    wifi["signal"] = (rssi <= -100) ? 0 : (rssi >= -50) ? 100 : 2 * (rssi + 100);
-    wifi["channel"] = WiFi.channel();        
-
-    // 3. FS
-    size_t totalBytes = 0, usedBytes = 0;
-    #if defined(ESP32)
-        totalBytes = LittleFS.totalBytes();
-        usedBytes = LittleFS.usedBytes();
-    #else
-        FSInfo fs_info;
-        if (LittleFS.info(fs_info)) {
-            totalBytes = fs_info.totalBytes;
-            usedBytes = fs_info.usedBytes;
-        }
-    #endif
-    JsonObject fs = info["fs"].to<JsonObject>();
-    fs["t"] = (totalBytes > 0) ? totalBytes / 1024 : 1024; 
-    fs["u"] = usedBytes / 1024;
-    fs["pmt"] = 0;
-
-    // 4. EFFECTS & PALETTES
-    doc["effects"].add("Solid");
-    doc["palettes"].add("Default");
-}
-
 void setupWebServer(AsyncWebServer& server) {
-    // minimal dummy JSON API for HA discovery and telemetry
-    server.on("/json/state", HTTP_PUT, [](AsyncWebServerRequest *request) {
-        AsyncResponseStream *response = request->beginResponseStream(mime_application_json);
-        JsonDocument doc;
-        dummyApi(doc, true);
-        serializeJson(doc, *response);
-        request->send(response);
-    });
 
-    server.on("/json", HTTP_GET, [](AsyncWebServerRequest *request) {
-        AsyncResponseStream *response = request->beginResponseStream(mime_application_json);
-        JsonDocument doc;
-        dummyApi(doc, false);
-        serializeJson(doc, *response);
-        request->send(response);
-    });
+    setupUniApiJsonHandler(server);
 
     // Scan WiFi
     server.on("/api/wifi_scan", HTTP_GET, [](AsyncWebServerRequest *request) {
+        if (!isAPMode())
+        {
+            request->send(202, mime_application_json, "{\"status\":\"unsupported\"}");
+            return;
+        }
+
         int n = WiFi.scanComplete();
-        Serial.printf("[WiFi Scan] Status: %d\n", n);
+        Log::debug("[WiFi Scan] Status: ", n);
 
         if (n == -1) { // scan in progress
-            Serial.println("[WiFi Scan] Still scanning...");
+            Log::debug("[WiFi Scan] Still scanning...");
             request->send(202, mime_application_json, "{\"status\":\"scanning\"}");
         } 
         else if (n == -2 || (n == 0)) { // restart scan
-            Serial.println("[WiFi Scan] Starting new async scan...");
+            Log::debug("[WiFi Scan] Starting new async scan...");
             WiFi.scanNetworks(true); 
             request->send(202, mime_application_json, "{\"status\":\"started\"}");
         } 
         else if (n > 0) { // scan is completed
-            Serial.printf("[WiFi Scan] Found %d networks. Sending to client.\n", n);
+            Log::debug("[WiFi Scan] Found ", n, " networks. Sending to client.");
             
             AsyncResponseStream *response = request->beginResponseStream(mime_application_json);
             JsonDocument doc;
@@ -162,6 +104,14 @@ void setupWebServer(AsyncWebServer& server) {
     // Save WiFi
     server.on("/save_wifi", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (request->hasParam("ssid", true) && request->hasParam("pass", true)) {
+            if (!isAPMode())
+            {
+                request->send(200, mime_text_html,"Unsupported");
+                return;
+            }
+
+            AppConfig cfg = Config::cfg;
+
             cfg.wifi.ssid = request->getParam("ssid", true)->value();
             cfg.wifi.ssid.trim();
             if (cfg.wifi.ssid == "CUSTOM") {
@@ -173,7 +123,7 @@ void setupWebServer(AsyncWebServer& server) {
                 }
             }
             cfg.wifi.password = request->getParam("pass", true)->value();
-            saveConfig();
+            Config::saveConfig(cfg);
             
             auto newAddress = sanitizeMdnsService(cfg.deviceName);
             AsyncWebServerResponse *response = request->beginResponse(200, mime_text_html, 
@@ -190,13 +140,14 @@ void setupWebServer(AsyncWebServer& server) {
 
             response->addHeader(F("Connection"), F("close"));
             request->send(response);
-            Serial.println("WiFi Config saved. Rebooting in 2s...");
+            Log::debug("WiFi Config saved. Rebooting in 2s...");
             managerScheduleReboot(2000);
         }
     });
 
     // Save settings
     server.on("/save_config", HTTP_POST, [](AsyncWebServerRequest *request) {
+        AppConfig cfg = Config::cfg;
         bool needsRestart = false;
 
         if (request->hasParam("type", true)) {
@@ -258,15 +209,15 @@ void setupWebServer(AsyncWebServer& server) {
 
         if (request->hasParam("extraMdnsTag", true)) {            
             auto val = sanitizeMdnsService(request->getParam("extraMdnsTag", true)->value());
-            needsRestart = (cfg.extraMdnsTag != val);
+            needsRestart = needsRestart || (cfg.extraMdnsTag != val);
             cfg.extraMdnsTag = val;
         }
 
-        saveConfig();
+        Config::saveConfig(cfg);
 
         if (needsRestart) {
             request->send(200, mime_application_json, "{\"status\":\"reboot\"}");
-            Serial.println("Configuration saved. Rebooting in 2s...");
+            Log::debug("Configuration saved. Rebooting in 2s...");
             managerScheduleReboot(2000);
         }
         else {
@@ -278,8 +229,12 @@ void setupWebServer(AsyncWebServer& server) {
     // Current config
     server.on("/api/get_current_config", HTTP_GET, [](AsyncWebServerRequest *request) {        
         AsyncResponseStream *response = request->beginResponseStream(mime_application_json);                
+        const AppConfig& cfg = Config::cfg;
         JsonDocument doc;         
         JsonObject led = doc["config"].to<JsonObject>();
+        led["apMode"]       = isAPMode();
+        led["architecture"] = getDeviceArch();
+        
         led["type"]         = (int)cfg.led.type;
         led["dataPin"]      = cfg.led.dataPin;
         led["clockPin"]     = cfg.led.clockPin;
@@ -303,6 +258,7 @@ void setupWebServer(AsyncWebServer& server) {
     // Internal stats API
     server.on("/api/stats", HTTP_GET, [](AsyncWebServerRequest *request) {
         AsyncResponseStream *response = request->beginResponseStream(mime_application_json);
+        const AppConfig& cfg = Config::cfg;
         JsonDocument doc;
         
         doc["VERSION"] = APP_VERSION;
@@ -321,6 +277,8 @@ void setupWebServer(AsyncWebServer& server) {
 
     // Not found and captivity mode
     server.onNotFound([](AsyncWebServerRequest *request) {
+        Log::debug("404 Not Found: ", request->url());
+
         if (isAPMode() && request->method() == HTTP_GET) {
             request->redirect("/");
         }

@@ -39,18 +39,18 @@
 #endif
 
 #include "utils.h"
+#include "logger.h"
 
 void rebootDevice() {
-    Serial.println("\n[UTILS] Critical: Hyperk is rebooting system...");
+    Log::debug("[UTILS] Critical: Hyperk is rebooting system...");
     
     WiFi.disconnect(true);
-    Serial.println("[UTILS] WiFi is closed.");
+    Log::debug("[UTILS] WiFi is closed.");
         
     LittleFS.end(); 
-    Serial.println("[UTILS] File System unmounted.");
+    Log::debug("[UTILS] File System unmounted.");
 
-    Serial.println("[UTILS] Executing Hardware Reset...");
-    Serial.flush();
+    Log::debug("[UTILS] Executing Hardware Reset...");
     delay(200);
 
     #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)

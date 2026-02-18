@@ -63,7 +63,7 @@ void startAP() {
     IPAddress IP = WiFi.softAPIP();    
     dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
     dnsServer.start(53, "*", IP);        
-    Serial.printf("Captive Portal Ready at: %s\n", IP.toString().c_str());
+    Log::debug("Captive Portal Ready at: ", IP);
 }
 
 bool isAPMode() {
@@ -75,21 +75,26 @@ void setup() {
     Serial.begin(115200);
     delay(500);
 
+    #ifdef DEBUG_LOG
+        delay(8000);
+    #endif
+
     #if defined(ARDUINO_ARCH_ESP32)
         LittleFS.begin(true);
     #else
         if (!LittleFS.begin()) {
-            Serial.println("FS Mount failed, formatting...");
+            Log::debug("FS Mount failed, formatting...");
             LittleFS.format();
             LittleFS.begin();
         }
     #endif
 
-    loadConfig();
+    Config::loadConfig();
 
-    applyLedConfig();
+    Leds::applyLedConfig();
 
     // WiFi connection with fallback
+    const AppConfig& cfg = Config::cfg;
     if (cfg.wifi.ssid.length() > 0)
     {
         WiFi.begin(cfg.wifi.ssid.c_str(), cfg.wifi.password.c_str());
@@ -106,22 +111,21 @@ void setup() {
     }
     else
     {
-        Serial.printf("Connected → %s\n", WiFi.localIP().toString().c_str());
+        Log::debug("Connected → ", WiFi.localIP());
     }
 
     startMDNS();
     setupWebServer(server);
     server.begin();
 
-    Serial.print("HTTP Server started on IP: ");
-    Serial.println(WiFi.localIP());
+    Log::debug("HTTP Server started on IP: ", WiFi.localIP());
 
     udpDDP.begin(4048);
-    Serial.println("UDP DDP listener started on port 4048");
+    Log::debug("UDP DDP listener started on port 4048");
     udpRealTime.begin(21324);
-    Serial.println("UDP RealTime listener started on port 21324");
+    Log::debug("UDP RealTime listener started on port 21324");
     udpRAW.begin(5568);
-    Serial.println("Raw RGB color stream listener started on port 5568");
+    Log::debug("Raw RGB color stream listener started on port 5568");
 }
 
 void loop()

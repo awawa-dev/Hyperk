@@ -83,7 +83,7 @@ namespace
 
 void printCalibration()
 {
-    Serial.printf("RGBW => Gain: %i/255, red: %i, green: %i, blue: %i\n", gain, red, green, blue);
+    Log::debug("RGBW => Gain: ",gain ,"/255, red: ",red ,", green: ",green ,", blue: ", blue);
 }
 
 void deleteCalibration()
