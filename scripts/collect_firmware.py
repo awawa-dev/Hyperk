@@ -55,23 +55,38 @@ def copy_firmware(target, source, env):
         dest_path = os.path.join(dist_dir, dest_name)                
 
         # 2. Factory Merge
-        if ext == ".bin" and "esp" in env_name and "esp8266" not in env_name:            
+        if ext == ".bin" and "esp" in env_name:            
             bootloader = os.path.join(build_dir, "bootloader.bin")
             partitions = os.path.join(build_dir, "partitions.bin")
-            
-            if os.path.exists(bootloader) and os.path.exists(partitions):
+
+            ota_dest_name = f"OTA_{dest_name}"
+            ota_dest_path = os.path.join(dist_dir, ota_dest_name)
+            shutil.copy2(source_path, ota_dest_path)
+            print(f">>> [SUCCESS] OTA firmware: {ota_dest_name}")
+
+            if "esp8266" in env_name:
+                shutil.copy2(source_path, dest_path)
+                print(f">>> [SUCCESS] Copy firmware: {dest_name}")
+            elif os.path.exists(bootloader) and os.path.exists(partitions):
                 mcu = env.get("BOARD_MCU", "esp32")                
                 factory_path = os.path.join(dist_dir, f"Hyperk_{app_version}_{env_name}_factory.bin")
                 boot_addr = "0x1000" if mcu in ["esp32", "esp32s2"] else "0x0"
                 try:
                     run_merge_bin(mcu, factory_path, boot_addr, bootloader, partitions, source_path, env)
-                    print(f">>> [SUCCESS] Factory image: {os.path.basename(factory_path)}")
+                    print(f">>> [SUCCESS] Factory firmware: {os.path.basename(factory_path)}")
                 except Exception as e:
                     print(f">>> [ERROR] Merge failed for {env_name}: {e}")
                     env.Exit(1)
         else:
             shutil.copy2(source_path, dest_path)
-            print(f">>> [SUCCESS] Copy: {dest_name}")
+            print(f">>> [SUCCESS] Copy firmware: {dest_name}")
+            if is_pico:
+                ota_dest_name = f"OTA_{dest_name.replace('.uf2', '.bin')}"
+                ota_dest_path = os.path.join(dist_dir, ota_dest_name)
+                source_bin = source_path.replace('.uf2', '.bin')
+                if os.path.exists(source_bin):
+                    shutil.copy2(source_bin, ota_dest_path)
+                    print(f">>> [SUCCESS] OTA firmware: {ota_dest_name}")
 
     else:
         print(f">>> [ERROR] File not found: {source_path}")
