@@ -276,19 +276,29 @@ void setupWebServer(AsyncWebServer& server) {
     });
 
     // Not found and captivity mode
-    server.onNotFound([](AsyncWebServerRequest *request) {
-        Log::debug("404 Not Found: ", request->url());
-
+    server.onNotFound([](AsyncWebServerRequest *request) {        
         if (isAPMode() && request->method() == HTTP_GET) {
+            Log::debug("404 Not Found: ", request->url());
             request->redirect("/");
         }
         else {
+            #ifdef DEBUG_LOG
+                String method = request->methodToString();
+                String contentType = request->contentType();
+                if (contentType.length() == 0) {
+                    contentType = "unknown";
+                }
+                Log::debug("404 Not Found: " + request->url() + " | Method: " + method + " | Content-Type: " + contentType);
+            #endif
             request->send(404, mime_text_plain, "Not found");
         }
     });
-    server.on("/fwlink", HTTP_GET, [](AsyncWebServerRequest *request){ request->redirect("/"); });
-    server.on("/check_generate_204", HTTP_GET, [](AsyncWebServerRequest *request){ request->redirect("/"); });
-    server.on("/generate_204", HTTP_ANY, [](AsyncWebServerRequest *request){ request->redirect("/"); });
+
+    if (isAPMode()){
+        server.on("/fwlink", HTTP_GET, [](AsyncWebServerRequest *request){ request->redirect("/"); });
+        server.on("/check_generate_204", HTTP_GET, [](AsyncWebServerRequest *request){ request->redirect("/"); });
+        server.on("/generate_204", HTTP_ANY, [](AsyncWebServerRequest *request){ request->redirect("/"); });
+    };
 
     setupStaticHandlers(server);
 }

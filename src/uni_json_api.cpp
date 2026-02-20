@@ -94,7 +94,7 @@ void setupUniApiJsonHandler(AsyncWebServer &server) {
         request->send(200, "application/json", "{\"0\":{\"n\":\"Default\"}}");
     });
 
-    server.on("/json/state", HTTP_POST, [](AsyncWebServerRequest *request) {},NULL,
+    server.on("/json/state", HTTP_POST | HTTP_PUT, [](AsyncWebServerRequest *request) {},NULL,
         [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
             
             Log::debug("-------- /json/state ---------");

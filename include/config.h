@@ -37,7 +37,7 @@ struct AppConfig {
     } wifi;
     LedConfig  led;
     String     deviceName = APP_NAME;
-    String     extraMdnsTag = "WLED";
+    String     extraMdnsTag = "wled";
 };
 
 namespace Config {
