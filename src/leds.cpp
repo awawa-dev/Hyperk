@@ -182,19 +182,19 @@ namespace Leds{
 
                 if (dotstar != nullptr) {
                     RgbwColor col(r, g, b, 31);
-                    col.Dim(Volatile::state.brightness);
+                    col = col.Dim(Volatile::state.brightness);
                     dotstar->ClearTo(col);
                     dotstar->Show();
                 }
                 else if (neopixel != nullptr) {
                     RgbColor col(r, g, b);
-                    col.Dim(Volatile::state.brightness);
+                    col = col.Dim(Volatile::state.brightness);
                     neopixel->ClearTo(col);
                     neopixel->Show();
                 }
                 else if (neopixelRgbw != nullptr) {
                     RgbwColor col(r, g, b, 0);
-                    col.Dim(Volatile::state.brightness);
+                    col = col.Dim(Volatile::state.brightness);
                     neopixelRgbw->ClearTo(col);
                     neopixelRgbw->Show();
                 }
@@ -370,19 +370,19 @@ namespace Leds{
             if (dotstar != nullptr)
             {
                 RgbwColor col(r, g, b, 31);
-                if constexpr (applyBrightness) col.Dim(Volatile::state.brightness);
+                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
                 dotstar->SetPixelColor(index, col);
             }
             else if (neopixel != nullptr)
             {
                 RgbColor col(r, g, b);
-                if constexpr (applyBrightness) col.Dim(Volatile::state.brightness);
+                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
                 neopixel->SetPixelColor(index, col);
             }
             else if (neopixelRgbw != nullptr)
             {
                 RgbwColor col = rgb2rgbw(r, g, b);
-                if constexpr (applyBrightness) col.Dim(Volatile::state.brightness);
+                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
                 neopixelRgbw->SetPixelColor(index, col);
             }
         #endif
@@ -410,19 +410,19 @@ namespace Leds{
             if (dotstar != nullptr)
             {
                 RgbwColor col(r, g, b, min(w, (uint8_t)31));
-                if constexpr (applyBrightness) col.Dim(Volatile::state.brightness);
+                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
                 dotstar->SetPixelColor(index, col);
             }
             else if (neopixel != nullptr)
             {
                 RgbColor col(r, g, b);
-                if constexpr (applyBrightness) col.Dim(Volatile::state.brightness);
+                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
                 neopixel->SetPixelColor(index, col);
             }
             else if (neopixelRgbw != nullptr)
             {
                 RgbwColor col(r, g, b, w);
-                if constexpr (applyBrightness) col.Dim(Volatile::state.brightness);
+                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
                 neopixelRgbw->SetPixelColor(index, col);
             }
         #endif
