@@ -42,6 +42,7 @@
 #include "mdns_service.h"
 #include "web_resources.h"
 #include "uni_json_api.h"
+#include "ota.h"
 
 namespace {
     constexpr auto mime_application_json = "application/json";
@@ -52,8 +53,15 @@ namespace {
 void setupStaticHandlers(AsyncWebServer& server);
 
 void setupWebServer(AsyncWebServer& server) {
-
-    setupUniApiJsonHandler(server);
+    
+    if (isAPMode()){
+        server.on("/fwlink", HTTP_GET, [](AsyncWebServerRequest *request){ request->redirect("/"); });
+        server.on("/check_generate_204", HTTP_GET, [](AsyncWebServerRequest *request){ request->redirect("/"); });
+        server.on("/generate_204", HTTP_ANY, [](AsyncWebServerRequest *request){ request->redirect("/"); });
+    } else {
+        setupUniApiJsonHandler(server);
+        otaUpdateHandler(server);
+    }
 
     // Scan WiFi
     server.on("/api/wifi_scan", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -141,7 +149,7 @@ void setupWebServer(AsyncWebServer& server) {
             response->addHeader(F("Connection"), F("close"));
             request->send(response);
             Log::debug("WiFi Config saved. Rebooting in 2s...");
-            managerScheduleReboot(2000);
+            managerScheduleReboot(1000);
         }
     });
 
@@ -234,6 +242,8 @@ void setupWebServer(AsyncWebServer& server) {
         JsonObject led = doc["config"].to<JsonObject>();
         led["apMode"]       = isAPMode();
         led["architecture"] = getDeviceArch();
+        led["board"]        = String(PIO_ENV_NAME);
+        led["version"]      = APP_VERSION;
         
         led["type"]         = (int)cfg.led.type;
         led["dataPin"]      = cfg.led.dataPin;
@@ -294,12 +304,6 @@ void setupWebServer(AsyncWebServer& server) {
         }
     });
 
-    if (isAPMode()){
-        server.on("/fwlink", HTTP_GET, [](AsyncWebServerRequest *request){ request->redirect("/"); });
-        server.on("/check_generate_204", HTTP_GET, [](AsyncWebServerRequest *request){ request->redirect("/"); });
-        server.on("/generate_204", HTTP_ANY, [](AsyncWebServerRequest *request){ request->redirect("/"); });
-    };
-
     setupStaticHandlers(server);
 }
 
@@ -311,9 +315,9 @@ void sendEmbeddedFile(AsyncWebServerRequest *request, const uint8_t* content, ui
     {
         response->addHeader(F("Content-Encoding"), F("gzip"));
         response->addHeader(F("Connection"), F("close"));
-        if (strcmp(contentType, "text/css") == 0 || strcmp(contentType, "image/png") == 0) 
+        if (strcmp(contentType, "application/javascript") == 0 || strcmp(contentType, "text/css") == 0 || strcmp(contentType, "image/png") == 0) 
         {
-            response->addHeader(F("Cache-Control"), F("public, max-age=31536000"));
+            response->addHeader(F("Cache-Control"), F("public, max-age=31536000, immutable"));
         }
         request->send(response);
     }
@@ -331,7 +335,7 @@ void setupStaticHandlers(AsyncWebServer& server)
             currentUrl = webResources[i].url;
         #endif
 
-        server.on(currentUrl, HTTP_GET, [i](AsyncWebServerRequest *request)
+        auto handler = [i](AsyncWebServerRequest *request)
         {
             WebResource res;
             #if defined(ESP8266)
@@ -340,6 +344,13 @@ void setupStaticHandlers(AsyncWebServer& server)
                 res = webResources[i];
             #endif
             sendEmbeddedFile(request, res.data, res.len, res.mime);
-        });
+        };
+
+        server.on(currentUrl, HTTP_GET, handler);
+
+        if (strcmp(currentUrl, "/index.html") == 0) 
+        {
+            server.on("/", HTTP_GET, handler);
+        }
     }
 }

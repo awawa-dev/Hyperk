@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Settings - Hyperk</title>
-  <link rel="stylesheet" href="/css/pico.min.css?v=1">
-  <link rel="stylesheet" href="/css/style.css?v=1">
-  <link rel="stylesheet" href="/css/settings.css?v=1">
-  <link id="favicon" rel="icon" type="image/png" href="/img/hyperk.png?v=1">
+  <link rel="stylesheet" href="/css/pico.min.css?v={{VERSION}}">
+  <link rel="stylesheet" href="/css/style.css?v={{VERSION}}">
+  <link rel="stylesheet" href="/css/settings.css?v={{VERSION}}">
+  <link id="favicon" rel="icon" type="image/png" href="/img/hyperk.png?v={{VERSION}}">
 </head>
 <body>
 
@@ -119,6 +119,40 @@
         </div>
       </details>
 
+      <details id="ota_page" style="display: none;" ontoggle="loadSubScript(this, 'ota', null)">
+        <summary role="button" class="outline secondary">Firmware Update (OTA)</summary>
+        <div>
+          <div style="margin-bottom: 1.5rem; padding: 1rem; border: 1px solid var(--pico-form-element-border-color); border-radius: var(--pico-border-radius); text-align: center; background: rgba(128, 128, 128, 0.05);">
+            <small style="display: block; color: var(--pico-muted-color); margin-bottom: 0.25rem;">Current Firmware</small>
+            <strong style="font-size: 1.25rem;" id="firmware_version_info">—</strong>
+          </div>
+
+          <div style="margin-bottom: 1.5rem;">
+            <label for="ota_channel" style="margin-bottom: 0.5rem; display: block;">Update Channel</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <select id="ota_channel" style="margin-bottom: 0; flex: 1;">
+                <option value="stable">Stable</option>
+                <option value="testing">Testing</option>
+              </select>
+              <button type="button" id="check_update_btn" class="secondary outline"
+                      style="margin-bottom: 0; white-space: nowrap; width: auto; background-color: #2e7d32; border-color: #2e7d32; color: #fff;"
+                      onclick="checkFirmwareUpdates()">
+                Check
+              </button>
+            </div>
+          </div>
+          
+          <div id="ota_status_area" style="display: none; margin-top: 1.5rem; padding: 1.5rem 1rem; background: var(--card-sectionning-background-color); border: 1px solid #eab308; border-radius: var(--border-radius); text-align: center;">
+            <p id="ota_status_text" style="margin-bottom: 1rem; font-size: 1.1rem; font-weight: bold;">Checking...</p>
+            <progress id="ota_progress" value="0" max="100" style="display: none;"></progress>
+            
+            <button type="button" id="install_update_btn" style="display: none; margin-top: 0.5rem; background-color: #eab308; border-color: #eab308; color: #111; font-weight: bold; width: 100%;" onclick="startOtaUpdate()">
+              Install Update
+            </button>
+          </div>
+        </div>
+      </details>
+
       <button type="submit">Save Settings</button>
     </form>
   </main>
@@ -134,9 +168,45 @@
       <span id="toast-msg">Your configuration has been saved successfully.</span>
     </div>
   </article>
+  <dialog id="confirm-modal">
+    <article>
+      <h3>⚠️ OTA Firmware Flash Procedure</h3>
+      <p id="confirm-msg">Are you sure you want to change version?</p>
+      <footer>
+        <button class="secondary outline" onclick="closeConfirm(false)">Cancel</button>
+        <button class="contrast" onclick="closeConfirm(true)">Yes, proceed</button>
+      </footer>
+    </article>
+  </dialog>
   <script>
       let scanInterval = 3500;
       let cfgDeviceArchitecture = "";
+      let cfgBoardArchitecture = ""
+      let cfgDeviceVersion = "";
+
+      const loadedScripts = {};
+      function loadSubScript(el, scriptName, initFunName) {
+          if (el.open && !loadedScripts[scriptName]) {
+              console.log(`Loading module: ${scriptName}`);
+              
+              const script = document.createElement('script');
+              script.src = `/${scriptName}.js?v={{VERSION}}`;
+              
+              script.onload = () => {
+                  loadedScripts[scriptName] = true;
+                  console.log(`✅ Loaded: ${scriptName} module`);
+                  if (initFunName && typeof window[initFunName] === 'function') {
+                      window[initFunName]();
+                  }
+              };
+
+              script.onerror = () => {
+                  console.error(`❌ Failed to load: ${scriptName}`);
+              };
+
+              document.head.appendChild(script);
+          }
+      }
 
       function setupPinValidator() {
           const hardwareLimits = {
@@ -156,7 +226,6 @@
               return;
           }
 
-          // Re-add ARIA-live to clkLabel for better accessibility during dynamic updates
           els.clkLabel.setAttribute('aria-live', 'polite');
 
           const setField = (name, opts) => {
@@ -168,7 +237,6 @@
 
               if ((old.tagName === 'SELECT') === isSel && old.dataset.sig === signature) return old;
 
-              // Remember focus state
               const wasFocused = (document.activeElement === old);
 
               const el = isSel ? document.createElement('select') : Object.assign(document.createElement('input'), {
@@ -181,7 +249,7 @@
               if (isSel) {
                   opts.forEach(p => el.add(new Option(`GPIO ${p}`, p)));
                   el.value = opts.includes(parseInt(old.value)) ? old.value : opts[0];
-                  // If only one option, disable for clarity and add tooltip
+
                   if (opts.length === 1) { 
                       el.disabled = true;
                       el.title = "Only one valid GPIO for this mode/architecture"; 
@@ -193,7 +261,7 @@
               old.replaceWith(el);
               el.addEventListener('change', updateUI); 
               
-              if (wasFocused) el.focus(); // Restore focus
+              if (wasFocused) el.focus();
               return el;
           };
 
@@ -243,7 +311,7 @@
               title.innerHTML = "🔄 Rebooting...";
               icon.innerHTML = "⏳";
               msg.innerHTML = 'Device is restarting to apply changes...';
-              setTimeout(() => { location.reload(); }, 8000);
+              setTimeout(() => { location.reload(); }, 10000);
           } else {
               title.innerHTML = "💾 Saved";
               icon.innerHTML = "✔";
@@ -251,55 +319,7 @@
           }
 
           t.classList.add('show');
-          setTimeout(() => { t.classList.remove('show'); }, isReboot ? 8000 : 3000);
-      }
-
-      async function scanWifi() {
-          const select = document.getElementById('ssid_select');
-          const customDiv = document.getElementById('custom_ssid_wrapper');
-
-          try {
-            const res = await fetch('/api/wifi_scan?t=' + Date.now());
-
-            if (res.status === 200) {
-                const nets = await res.json();
-
-                let html = '<option value="">-- Select network --</option>';
-
-                nets
-                  .sort((a, b) => b.rssi - a.rssi)
-                  .forEach(n => {
-                    const q = n.rssi > -50  ? 'excellent' :
-                              n.rssi > -60  ? 'very good' :
-                              n.rssi > -70  ? 'good'      :
-                              n.rssi > -80  ? 'fair'      :
-                                              'poor';
-                    html += `<option value="${n.ssid}">${n.ssid} (${n.rssi} dBm – ${q})</option>`;
-                  });
-
-                html += '<option value="CUSTOM">Custom SSID...</option>';
-
-                const prev = select.value;
-                select.innerHTML = html;
-
-                if (prev) select.value = prev;
-
-                scanInterval = 12000;
-            }
-            else if (res.status === 202) {
-                if (select.options[0]) {
-                  select.options[0].text = "Scanning...";
-                }
-                scanInterval = 4000;
-            }
-          }
-          catch (e) {
-              if (select.options[0]) {
-                select.options[0].text = "Connection lost";
-              }
-          }
-
-          setTimeout(scanWifi, scanInterval);
+          setTimeout(() => { t.classList.remove('show'); }, isReboot ? 10000 : 3000);
       }
 
       async function loadCurrentConfig() {
@@ -312,7 +332,22 @@
               const archField = l["architecture"];              
               if (archField !== undefined){
                   cfgDeviceArchitecture = archField;                  
-              }              
+              }
+              
+              const boardField = l["board"];              
+              if (boardField !== undefined){
+                  cfgBoardArchitecture = boardField;                  
+              }
+              
+              const versionField = l["version"];              
+              if (versionField !== undefined){
+                  cfgDeviceVersion = versionField;                  
+              }
+              
+              const fwInfo = document.getElementById('firmware_version_info');
+              if (fwInfo) {
+                  fwInfo.innerHTML = `<strong>${cfgDeviceVersion || 'unknown'}</strong> <small style="opacity:0.75">(${cfgDeviceArchitecture || '—'})</small>`;
+              }
 
               const fields = ['type', 'dataPin', 'clockPin', 'numLeds', 'brightness', 'r', 'g', 'b', 'effect', 'extraMdnsTag', 'calGain', 'calRed', 'calGreen', 'calBlue'];
               fields.forEach(field => {
@@ -329,6 +364,9 @@
 
               if (l["apMode"] === true) {
                   document.getElementById("wifi_configuration_page").style.display = "block";
+                  loadSubScript(this, 'wifi', "scanWifi");
+              } else {
+                  document.getElementById("ota_page").style.display = "block";           
               }
 
               toggleCalibration();
@@ -361,41 +399,6 @@
           ledTypeSelect.addEventListener('change', toggleCalibration);
           
           loadCurrentConfig();
-          scanWifi();          
-      });
-
-      
-      document.querySelector('form[action="/save_wifi"]').addEventListener('submit', e => {
-          const select = document.getElementById('ssid_select');
-          const customInput = document.getElementById('ssid_custom');
-
-          if (select.value === 'CUSTOM' && !customInput.value.trim()) {
-              e.preventDefault();
-
-              let msg = document.getElementById('wifi-error-msg');
-              if (!msg) {
-                  msg = document.createElement('small');
-                  msg.id = 'wifi-error-msg';
-                  msg.className = 'form-error-msg';
-                  const container = document.querySelector('#wifi-section > div') || document.querySelector('#wifi-section');
-                  if (container) {
-                      container.appendChild(msg);
-                  }
-              }
-              msg.textContent = 'Custom SSID is required';
-              customInput.classList.add('error-active');
-              customInput.focus();              
-
-              setTimeout(() => { 
-                  if (msg) msg.textContent = '';
-                  customInput.classList.remove('error-active');
-              }, 5000);
-
-              return;
-          }
-
-          btn.setAttribute('aria-busy', 'true');
-          btn.disabled = true;
       });
 
       document.querySelector('form[action="/save_config"]').addEventListener('submit', async (e) => {
