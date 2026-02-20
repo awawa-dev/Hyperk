@@ -49,7 +49,7 @@ namespace Storage {
         cfg.wifi.ssid     = doc["wifi"]["ssid"] | "";
         cfg.wifi.password = doc["wifi"]["password"] | "";
         cfg.deviceName    = doc["deviceName"] | APP_NAME;
-        cfg.extraMdnsTag  = doc["extraMdnsTag"] | "WLED";
+        cfg.extraMdnsTag  = doc["extraMdnsTag"] | "wled";
 
         cfg.led.type       = static_cast<LedType>(doc["led"]["type"] | static_cast<int>(LedType::WS2812));
         cfg.led.dataPin    = doc["led"]["dataPin"]    | 2;
