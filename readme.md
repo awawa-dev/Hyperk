@@ -7,6 +7,9 @@ Hyperk is a minimalist, high-performance uni-platform WiFi LED driver for ESP826
 The firmware can be flashed directly from your browser:
 **[hyperk.hyperhdr.org](https://hyperk.hyperhdr.org)**
 
+> [!TIP]
+> Once installed, you can also perform OTA updates directly through the local **Web GUI**.
+
 ---
 
 ## Supported Hardware
