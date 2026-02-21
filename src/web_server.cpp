@@ -33,6 +33,10 @@
     #include <WiFi.h>
 #endif
 
+#if defined(ARDUINO_ARCH_ESP32) && defined(WEBSERVER_USE_ETHERNET)
+    #include <ETH.h>
+#endif
+
 #include "web_server.h"
 #include "main.h"
 #include "config.h"
@@ -273,7 +277,15 @@ void setupWebServer(AsyncWebServer& server) {
         
         doc["VERSION"] = APP_VERSION;
         doc["DEVICE"] = cfg.deviceName;
-        doc["IP"]     = WiFi.localIP().toString();
+        #if defined(ARDUINO_ARCH_ESP32) && defined(WEBSERVER_USE_ETHERNET)
+            if (auto eth = ETH.localIP(), wifi = WiFi.localIP(); eth != IPAddress(0,0,0,0) && wifi != IPAddress(0,0,0,0)) {
+                doc["IP"] = eth.toString() + ";" + wifi.toString();
+            } else {
+                doc["IP"] = (eth != IPAddress(0,0,0,0)) ? eth.toString() : wifi.toString();
+            }
+        #else
+            doc["IP"]     = WiFi.localIP().toString();
+        #endif
         doc["RSSI"]   = String(WiFi.RSSI()) + " dBm";
         doc["UPTIME"] = String(millis() / 1000);
         doc["HEAP"]   = String(getFreeHeap() / 1024) + " kB";

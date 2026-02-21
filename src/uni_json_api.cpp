@@ -17,7 +17,7 @@
     R"raw("nl":{"on":false,"dur":60,"mode":1,"tbri":0},)raw" \
     R"raw("udpn":{"send":false,"recv":false}},)raw" \
     R"raw("info":{)raw" \
-    R"raw("ver":"0.15.3","vid":2508020,"cn":"Hyperk","name":"Hyperk","arch":"##########","uptime":############,"live":######,"freeheap":########,)raw" \
+    R"raw("ver":"0.15.3","vid":2508020,"cn":"Hyperk","name":"Hyperk","arch":"###########","uptime":############,"live":######,"freeheap":########,)raw" \
     R"raw("leds":{"count":######,"maxseg":1,"lc":1,"seglc":[1],"cct":0,"wv":0,"maxpwr":0,"rgbw":######},)raw" \
     R"raw("wifi":{"rssi":######,"signal":####,"channel":###},)raw" \
     R"raw("fs":{"u":16,"t":61,"pmt":0}},)raw" \
@@ -209,7 +209,7 @@ void uniConfigJsonResponse(AsyncWebServerRequest *request)
     sWrite(b, P_RGBW, 6, (cfg.led.type == LedType::SK6812) ? "true" : "false");
 
     // Architecture
-    sWrite(b, P_ARCH, 10, getDeviceArch().c_str());
+    sWrite(b, P_ARCH, 11, getDeviceArch().c_str());
 
     #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
         uint32_t freeHeap = rp2040.getFreeHeap();

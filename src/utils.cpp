@@ -74,6 +74,8 @@ String getDeviceArch()
         modelName = F("RP2350");
     #elif defined(ARDUINO_ARCH_RP2040)
         modelName = F("RP2040");
+    #elif defined(ARDUINO_ARCH_ESP32) && defined(WEBSERVER_USE_ETHERNET)
+        modelName = F("ESP32-ETH01");
     #elif defined(CONFIG_IDF_TARGET_ESP32)
         modelName = F("ESP32");
     #elif defined(CONFIG_IDF_TARGET_ESP32S2)

@@ -184,17 +184,20 @@ async function startOtaUpdate() {
         };
 
         xhr.onload = () => {
+            isUpdating = false;
             if (xhr.status === 200) {
                 statusText.innerText = "✅ Update successful! Rebooting...";
                 showToast(true);
             } else {
                 statusText.innerText = `❌ Flash failed: ${xhr.responseText || xhr.statusText}`;
-                progress.style.display = 'none';
-                checkBtn.disabled = false;
+                progress.style.display = 'none';                
             }
+            checkBtn.disabled = false;
+             if (saveConfigBtn) saveConfigBtn.disabled = false;
         };
 
         xhr.onerror = () => {
+            isUpdating = false;
             statusText.innerText = "❌ Network error during upload. Device might have rebooted unexpectedly.";
             progress.style.display = 'none';
             checkBtn.disabled = false;
@@ -204,11 +207,10 @@ async function startOtaUpdate() {
         xhr.send(formData);
 
     } catch (err) {
+        isUpdating = false;
         statusText.innerText = `❌ Error: ${err.message}`;
         progress.style.display = 'none';
         checkBtn.disabled = false;
         if (saveConfigBtn) saveConfigBtn.disabled = false;
-    }
-
-    isUpdating = false;
+    }    
 };
