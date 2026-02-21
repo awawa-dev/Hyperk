@@ -1,5 +1,6 @@
 import os
 import gzip
+import urllib.parse
 Import("env")
 
 def embed_web_files():
@@ -10,8 +11,20 @@ def embed_web_files():
     if not os.path.exists(data_dir):
         print(f"[WebEmbedder] Error: {data_dir} directory not found!")
         return
+    
+    raw_v = "1.0.0" # fallback
+    cpp_defines = env.get("CPPDEFINES", []) 
+    for define in cpp_defines:
+        if isinstance(define, tuple) and define[0] == "APP_VERSION":
+            raw_v = define[1]
+            break
+        elif isinstance(define, str) and define.startswith("APP_VERSION="):
+            raw_v = define.split('=')[1]
+            break
+    clean_v = raw_v.replace('\\"', '').strip('"')
+    app_version = urllib.parse.quote(clean_v)
 
-    print(f"[WebEmbedder] Generating {output_file}...")
+    print(f"[WebEmbedder] Generating {output_file} (version = {app_version})...")
     
     files_data = []
     
@@ -49,8 +62,15 @@ def embed_web_files():
                 mime = MIME_TYPES.get(ext, "application/octet-stream")
                 
                 with open(full_path, "rb") as f_in:
+                    raw_data = f_in.read()
+
+                    # replace version
+                    if ext == ".html":
+                        content = raw_data.decode("utf-8").replace("{{VERSION}}", app_version)
+                        raw_data = content.encode("utf-8")
+
                     # Compress data with Gzip
-                    compressed = gzip.compress(f_in.read())
+                    compressed = gzip.compress(raw_data)
                     f.write(f"const uint8_t PAGE_{var_name}[] PROGMEM = {{ ")
                     f.write(", ".join([f"0x{b:02x}" for b in compressed]))
                     f.write(f" }};\n")
@@ -72,13 +92,9 @@ def embed_web_files():
         f.write(f"const WebResource webResources[] PROGMEM = {{\n")
         for file in files_data:
             f.write(f"  {{ \"{file['url']}\", {file['var']}, {file['len']}, \"{file['mime']}\" }},\n")
-            # Automatically map index.html to the root path "/"
-            if file['url'] == "/index.html":
-                f.write(f"  {{ \"/\", {file['var']}, {file['len']}, \"{file['mime']}\" }},\n")
         f.write("};\n\n")
         
-        # Calculate total count including the root mapping
-        total_count = len(files_data) + (1 if any(f['url'] == '/index.html' for f in files_data) else 0)
+        total_count = len(files_data)
         f.write(f"const uint16_t webResourcesCount = {total_count};\n\n")
         f.write("#endif\n")
     print(f"[WebEmbedder] Successfully created {output_file}")
