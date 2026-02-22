@@ -279,7 +279,7 @@ void setupWebServer(AsyncWebServer& server) {
         doc["DEVICE"] = cfg.deviceName;
         #if defined(ARDUINO_ARCH_ESP32) && defined(WEBSERVER_USE_ETHERNET)
             if (auto eth = ETH.localIP(), wifi = WiFi.localIP(); eth != IPAddress(0,0,0,0) && wifi != IPAddress(0,0,0,0)) {
-                doc["IP"] = eth.toString() + ";" + wifi.toString();
+                doc["IP"] = eth.toString() + " " + wifi.toString();
             } else {
                 doc["IP"] = (eth != IPAddress(0,0,0,0)) ? eth.toString() : wifi.toString();
             }
