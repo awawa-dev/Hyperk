@@ -38,4 +38,4 @@ The firmware can be flashed directly from your browser:
 | UDP Raw RGB | 5568 | Raw color stream listener |
 
 ---
-*Developed for performance. Optimized for HyperHDR.*
+*Developed for performance. Optimized for HyperHDR. [Privacy & Technical Note](https://awawa-dev.github.io/hyperk/privacy.html)*
