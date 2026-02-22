@@ -4,7 +4,7 @@
     {
       "label": "Build ESP Core 2.x",
       "type": "shell",
-      "command": "pio run -e esp32 -e esp32s2 -e esp8266",
+      "command": "pio run -e esp32 -e esp32s2 -e esp32-eth01 -e esp8266",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "shared" },
       "options": {

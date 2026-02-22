@@ -44,16 +44,16 @@ async function scanWifi() {
 
         let html = '<option value="">-- Select network --</option>';
 
-        nets
-            .sort((a, b) => b.rssi - a.rssi)
-            .forEach(n => {
-            const q = n.rssi > -50  ? 'excellent' :
-                        n.rssi > -60  ? 'very good' :
-                        n.rssi > -70  ? 'good'      :
-                        n.rssi > -80  ? 'fair'      :
-                                        'poor';
-            html += `<option value="${n.ssid}">${n.ssid} (${n.rssi} dBm – ${q})</option>`;
+        if (Array.isArray(nets)){
+            nets.sort((a, b) => b.rssi - a.rssi).forEach(n => {
+                const q = n.rssi > -50  ? 'excellent' :
+                            n.rssi > -60  ? 'very good' :
+                            n.rssi > -70  ? 'good'      :
+                            n.rssi > -80  ? 'fair'      :
+                                            'poor';
+                html += `<option value="${n.ssid}">${n.ssid} (${n.rssi} dBm – ${q})</option>`;
             });
+        }
 
         html += '<option value="CUSTOM">Custom SSID...</option>';
 
@@ -78,4 +78,26 @@ async function scanWifi() {
     }
 
     setTimeout(scanWifi, scanInterval);
+};
+
+
+function setupWifi() {
+    const select = document.getElementById('ssid_select');
+    const customDiv = document.getElementById('custom_ssid_wrapper');
+    const customInput = document.getElementById('ssid_custom');
+
+    select.addEventListener('change', () => {
+        if (select.value === 'CUSTOM') {
+            customDiv.style.display = 'block';
+            setTimeout(() => customInput.focus(), 100);
+            customInput.required = true;
+        }
+        else {
+            customDiv.style.display = 'none';
+            customInput.required = false;
+            customInput.value = '';
+        }
+    });
+
+    scanWifi();
 };

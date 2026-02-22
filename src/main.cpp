@@ -33,6 +33,9 @@
 #elif defined(ARDUINO_ARCH_ESP32)
     #include <WiFi.h>
     #include <ESPmDNS.h>
+    #ifdef WEBSERVER_USE_ETHERNET
+        #include <ETH.h>
+    #endif
 #elif defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
     #include <WiFi.h>
     #include <LEAmDNS.h>
@@ -50,10 +53,14 @@
 #include "leds.h"
 #include "manager.h"
 
-DNSServer dnsServer;
-AsyncWebServer server(80);
-WiFiUDP udpDDP, udpRealTime, udpRAW;
-bool inAPMode = false;
+namespace {
+    DNSServer dnsServer;
+    AsyncWebServer server(80);
+    WiFiUDP udpDDP, udpRealTime, udpRAW;
+
+    bool inAPMode = false;
+    bool hasEthernet = false; 
+}
 
 void startAP() {
     inAPMode = true;
@@ -69,7 +76,6 @@ void startAP() {
 bool isAPMode() {
     return inAPMode;
 }
-
 
 void setup() {
     Serial.begin(115200);
@@ -93,32 +99,58 @@ void setup() {
 
     Leds::applyLedConfig();
 
-    // WiFi connection with fallback
-    const AppConfig& cfg = Config::cfg;
-    if (cfg.wifi.ssid.length() > 0)
-    {
-        WiFi.begin(cfg.wifi.ssid.c_str(), cfg.wifi.password.c_str());
-        uint32_t timeout = millis() + 12000;
-        while (WiFi.status() != WL_CONNECTED && millis() < timeout)
-        {
-            delay(400);
-        }
-    }
+    #ifdef WEBSERVER_USE_ETHERNET
+        ETH.begin();
 
-    if (WiFi.status() != WL_CONNECTED)
-    {
-        startAP();
-    }
-    else
-    {
-        Log::debug("Connected → ", WiFi.localIP());
+        unsigned long timeout = millis() + 8000;
+        while (millis() < timeout) {
+            if (auto localIp = ETH.localIP(); localIp != IPAddress(0, 0, 0, 0)) {
+                Log::debug("Ethernet Connected → ", localIp.toString());
+                hasEthernet = true;
+                break;
+            }
+            if (millis() > (timeout - 5000) && !ETH.linkUp()) {
+                Log::debug("The cable is disconnected. Give up waiting for ethernet connection.");
+                break;
+            }
+            delay(500);
+            Log::debug(".");    
+        }
+
+        if (!hasEthernet) {
+            Log::debug("Starting WiFi Fallback...");
+        }
+    #endif
+    
+    const AppConfig& cfg = Config::cfg;
+
+    // WiFi connection with fallback
+    if (!hasEthernet){
+        if (cfg.wifi.ssid.length() > 0)
+        {
+            WiFi.begin(cfg.wifi.ssid.c_str(), cfg.wifi.password.c_str());
+            uint32_t timeout = millis() + 12000;
+            while (WiFi.status() != WL_CONNECTED && millis() < timeout)
+            {
+                delay(400);
+            }
+        }
+
+        if (WiFi.status() != WL_CONNECTED)
+        {
+            startAP();
+        }
+        else
+        {
+            Log::debug("Connected → ", WiFi.localIP());
+        }
     }
 
     startMDNS();
     setupWebServer(server);
     server.begin();
 
-    Log::debug("HTTP Server started on IP: ", WiFi.localIP());
+    Log::debug("HTTP Server started");
 
     udpDDP.begin(4048);
     Log::debug("UDP DDP listener started on port 4048");
