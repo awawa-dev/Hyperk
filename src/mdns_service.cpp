@@ -42,72 +42,103 @@
 #include "mdns_service.h"
 #include "utils.h"
 
-String sanitizeMdnsService(String s) {
-    s.toLowerCase();
-    
-    char buf[16] = {0};
-    int j = 0;
-    bool lastDash = false;
-    
-    for (unsigned int i = 0; i < s.length() && j < 15; i++) {
-        char c = s[i];
-        if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
-            buf[j++] = c;
-            lastDash = false;
-        } else if (!lastDash && j > 0) {
-            buf[j++] = '-';
-            lastDash = true;
+ namespace Mdns{
+    bool mdnsInitialized = false;
+    String deviceShortMacAddress = "";
+
+    String sanitizeMdnsService(String s) {
+        s.toLowerCase();
+        
+        char buf[16] = {0};
+        int j = 0;
+        bool lastDash = false;
+        
+        for (unsigned int i = 0; i < s.length() && j < 15; i++) {
+            char c = s[i];
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+                buf[j++] = c;
+                lastDash = false;
+            } else if (!lastDash && j > 0) {
+                buf[j++] = '-';
+                lastDash = true;
+            }
         }
-    }
-    
-    if (lastDash) j--;
-    buf[j] = '\0';
+        
+        if (lastDash) j--;
+        buf[j] = '\0';
 
 
-    if (j > 0)
-    {
-        Log::debug("Validated MDNS service name: ", buf);
-        return String(buf);
-    }
-    else
-    {
-        Log::debug("MDNS service name is invalid: ", s);
-        return String("invalid-name");
-    }
-}
-
-void startMDNS()
-{
-    const AppConfig& cfg = Config::cfg;
-
-    if (MDNS.begin(cfg.deviceName.c_str()))
-    {
-        String macId = WiFi.macAddress();
-        macId.replace(":", "");
-        macId.toLowerCase();
-
-        // 1. Extra mdns tag
-        if (cfg.extraMdnsTag.length() > 0)
+        if (j > 0)
         {
-            auto extraMDNS = sanitizeMdnsService(cfg.extraMdnsTag);
-            MDNS.addService(extraMDNS, "tcp", 80);
-            MDNS.addServiceTxt(extraMDNS, "tcp", "id", macId.c_str());
-            String fullModelName = String(APP_NAME) + "-" + String(APP_VERSION);
-            MDNS.addServiceTxt(extraMDNS, "tcp", "mdl", fullModelName.c_str());            
-            MDNS.addServiceTxt(extraMDNS, "tcp", "mac", WiFi.macAddress().c_str());
-            MDNS.addServiceTxt(extraMDNS, "tcp", "src", "udp");
+            Log::debug("Validated MDNS service name: ", buf);
+            return String(buf);
+        }
+        else
+        {
+            Log::debug("MDNS service name is invalid: ", s);
+            return String("");
+        }
+    }
+
+    String getDeviceShortMacAddress() {
+
+        if (deviceShortMacAddress.isEmpty())
+        {
+            deviceShortMacAddress = WiFi.macAddress();
+            deviceShortMacAddress.replace(":", "");
+            deviceShortMacAddress.toLowerCase();
         }
 
-        // 2. Hyperk services
-        auto ourMDNS = sanitizeMdnsService(APP_NAME);
-        MDNS.addService(ourMDNS, "tcp", 80);        
-        MDNS.addServiceTxt(ourMDNS, "tcp", "ver", APP_VERSION);
-        MDNS.addServiceTxt(ourMDNS, "tcp", "id", macId.c_str());
-
-        MDNS.addService("ddp", "udp", 4048);
-        MDNS.addService("realtime", "udp", 21324);
-        MDNS.addService("raw", "udp", 5568);
-
-        Log::debug("mDNS: ", cfg.deviceName, ".local (", APP_NAME, " v", APP_VERSION, ")");
+        return deviceShortMacAddress;
     }
+
+
+    void startMDNS()
+    {
+        const AppConfig& cfg = Config::cfg;
+
+        endMDNS();
+
+        if (cfg.deviceName.isEmpty()) {
+            Log::debug("Skipping mDNS initialization: device name is empty");
+            return;
+        }
+
+        if (mdnsInitialized = MDNS.begin(cfg.deviceName.c_str()); mdnsInitialized)
+        {
+            String macId = getDeviceShortMacAddress();
+
+            // 1. Extra mdns tag
+            if (cfg.extraMdnsTag.length() > 0)
+            {
+                auto extraMDNS = sanitizeMdnsService(cfg.extraMdnsTag);
+                MDNS.addService(extraMDNS, "tcp", 80);
+                MDNS.addServiceTxt(extraMDNS, "tcp", "id", macId.c_str());
+                String fullModelName = String(APP_NAME) + "-" + String(APP_VERSION);
+                MDNS.addServiceTxt(extraMDNS, "tcp", "mdl", fullModelName.c_str());            
+                MDNS.addServiceTxt(extraMDNS, "tcp", "mac", WiFi.macAddress().c_str());
+                MDNS.addServiceTxt(extraMDNS, "tcp", "src", "udp");
+            }
+
+            // 2. Hyperk services
+            auto ourMDNS = sanitizeMdnsService(APP_NAME);
+            MDNS.addService(ourMDNS, "tcp", 80);        
+            MDNS.addServiceTxt(ourMDNS, "tcp", "ver", APP_VERSION);
+            MDNS.addServiceTxt(ourMDNS, "tcp", "id", macId.c_str());
+
+            MDNS.addService("ddp", "udp", 4048);
+            MDNS.addService("realtime", "udp", 21324);
+            MDNS.addService("raw", "udp", 5568);
+
+            Log::debug("mDNS: ", cfg.deviceName, ".local (", APP_NAME, " v", APP_VERSION, ")");
+        }
+    }
+
+    void endMDNS() {
+        if (mdnsInitialized) {
+            mdnsInitialized = false;
+            MDNS.end();        
+        }
+    }
+
 }

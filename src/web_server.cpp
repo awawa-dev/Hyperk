@@ -137,14 +137,13 @@ void setupWebServer(AsyncWebServer& server) {
             cfg.wifi.password = request->getParam("pass", true)->value();
             Config::saveConfig(cfg);
             
-            auto newAddress = sanitizeMdnsService(cfg.deviceName);
             AsyncWebServerResponse *response = request->beginResponse(200, mime_text_html, 
                 "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'></head>"
                 "<body style='background:#111;color:#fff;font-family:sans-serif;text-align:center;padding:10vh 15px;line-height:1.6;font-size:1.1rem;'>"
                 "<h2>WiFi Saved</h2>"
                 "<p>Switch your phone to your:</p><p style='font-weight:bold;'>" + cfg.wifi.ssid + "</p>"
                 "<p>network and use address:</p>"
-                "<p><a href='http://" + newAddress + ".local' style='color:#43a047;font-weight:bold;'>" + newAddress + ".local</a></p>"
+                "<p><a href='http://" + cfg.deviceName + ".local' style='color:#43a047;font-weight:bold;'>" + cfg.deviceName + ".local</a></p>"
                 "<p style='font-size:0.9rem; color:#888;'>Alternatively check router for new IP.</p>"
                 "<p style='color:#666;margin-top:40px;font-size:0.85rem;'>"
                 "If connection fails, device will <b>switch back to WiFi AP</b> in 12s.</p>"
@@ -219,10 +218,32 @@ void setupWebServer(AsyncWebServer& server) {
         if (request->hasParam("calGreen", true)) cfg.led.calibration.green = constrain(request->getParam("calGreen", true)->value().toInt(), 0, 255);
         if (request->hasParam("calBlue", true)) cfg.led.calibration.blue = constrain(request->getParam("calBlue", true)->value().toInt(), 0, 255);
 
-        if (request->hasParam("extraMdnsTag", true)) {            
-            auto val = sanitizeMdnsService(request->getParam("extraMdnsTag", true)->value());
-            needsRestart = needsRestart || (cfg.extraMdnsTag != val);
-            cfg.extraMdnsTag = val;
+        const bool standaloneApMode = isAPMode();
+
+        if (request->hasParam("deviceName", true)) {
+            auto rawValue = request->getParam("deviceName", true)->value();
+            rawValue.trim();
+            const auto safeVal = Mdns::sanitizeMdnsService(rawValue);
+            const bool valChanged = (!cfg.deviceName.equalsIgnoreCase(safeVal)) || (rawValue != cfg.deviceName);
+            if (!standaloneApMode){
+                needsRestart = needsRestart || valChanged;
+            }
+            if (valChanged) {
+                cfg.deviceName = safeVal;
+            }
+        }
+
+        if (request->hasParam("extraMdnsTag", true)) {
+            auto rawValue = request->getParam("extraMdnsTag", true)->value();
+            rawValue.trim();
+            const auto safeVal = Mdns::sanitizeMdnsService(rawValue);
+            const bool valChanged = (!cfg.extraMdnsTag.equalsIgnoreCase(safeVal)) || (rawValue != cfg.extraMdnsTag);
+            if (!standaloneApMode) {
+                needsRestart = needsRestart || valChanged;
+            }
+            if (valChanged) {
+                cfg.extraMdnsTag = safeVal;
+            }
         }
 
         Config::saveConfig(cfg);
@@ -249,21 +270,24 @@ void setupWebServer(AsyncWebServer& server) {
         led["board"]        = String(PIO_ENV_NAME);
         led["version"]      = APP_VERSION;
         
-        led["type"]         = (int)cfg.led.type;
-        led["dataPin"]      = cfg.led.dataPin;
-        led["clockPin"]     = cfg.led.clockPin;
-        led["numLeds"]      = cfg.led.numLeds;
-        led["brightness"]   = cfg.led.brightness;
-        led["r"]            = cfg.led.r;
-        led["g"]            = cfg.led.g;
-        led["b"]            = cfg.led.b;
-        led["effect"]       = cfg.led.effect;
-        led["extraMdnsTag"] = cfg.extraMdnsTag;
-
+        led["type"]     = (int)cfg.led.type;
+        led["dataPin"]  = cfg.led.dataPin;
+        led["clockPin"] = cfg.led.clockPin;
+        led["numLeds"]  = cfg.led.numLeds;
         led["calGain"]  = cfg.led.calibration.gain;
         led["calRed"]   = cfg.led.calibration.red;
         led["calGreen"] = cfg.led.calibration.green;
         led["calBlue"]  = cfg.led.calibration.blue;
+
+
+        led["brightness"] = cfg.led.brightness;
+        led["r"]          = cfg.led.r;
+        led["g"]          = cfg.led.g;
+        led["b"]          = cfg.led.b;
+        led["effect"]     = cfg.led.effect;
+
+        led["deviceName"]   = cfg.deviceName;
+        led["extraMdnsTag"] = cfg.extraMdnsTag;
 
         serializeJson(doc, *response);
         request->send(response);

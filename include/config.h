@@ -36,7 +36,7 @@ struct AppConfig {
         String password;
     } wifi;
     LedConfig  led;
-    String     deviceName = APP_NAME;
+    String     deviceName = "hyperk";
     String     extraMdnsTag = "wled";
 };
 

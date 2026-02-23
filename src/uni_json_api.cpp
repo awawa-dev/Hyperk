@@ -3,6 +3,9 @@
 #include "utils.h"
 #include "leds.h"
 #include "volatile_state.h"
+#include "mdns_service.h"
+
+#include <charconv>
 
 #if defined(ESP8266)
     #include <ESP8266WiFi.h>
@@ -12,13 +15,13 @@
 
 #define TPL_BODY \
     R"raw({"state":{)raw" \
-    R"raw("on":######,"bri":####,"mainseg":0,"lor":0,)raw" \
-    R"raw("seg":[{"id":0,"fx":0,"pal":0,"sel":true,"cct":0,"o1":false,"o2":false,"o3":false,"si":0,"m12":0,"bri":255,"start":0,"stop":######,"on":######,"col":[[####,####,####],[0,0,0],[0,0,0]]}],)raw" \
+    R"raw("on":#####,"bri":####,"mainseg":0,"lor":0,)raw" \
+    R"raw("seg":[{"id":0,"fx":0,"pal":0,"sel":true,"cct":0,"o1":false,"o2":false,"o3":false,"si":0,"m12":0,"bri":255,"start":0,"stop":######,"on":#####,"col":[[####,####,####],[0,0,0],[0,0,0]]}],)raw" \
     R"raw("nl":{"on":false,"dur":60,"mode":1,"tbri":0},)raw" \
     R"raw("udpn":{"send":false,"recv":false}},)raw" \
     R"raw("info":{)raw" \
-    R"raw("ver":"0.15.3","vid":2508020,"cn":"Hyperk","name":"Hyperk","arch":"###########","uptime":############,"live":######,"freeheap":########,)raw" \
-    R"raw("leds":{"count":######,"maxseg":1,"lc":1,"seglc":[1],"cct":0,"wv":0,"maxpwr":0,"rgbw":######},)raw" \
+    R"raw("ver":"0.15.3","vid":2508020,"cn":"Hyperk","name":"###############","mac":"############","arch":"###########","uptime":############,"live":#####,"freeheap":########,)raw" \
+    R"raw("leds":{"count":######,"maxseg":1,"lc":1,"seglc":[1],"cct":0,"wv":0,"maxpwr":0,"rgbw":#####},)raw" \
     R"raw("wifi":{"rssi":######,"signal":####,"channel":###},)raw" \
     R"raw("fs":{"u":16,"t":61,"pmt":0}},)raw" \
     R"raw("effects":["Solid"],"palettes":["Default"]})raw"
@@ -47,6 +50,8 @@ static constexpr int P_STOP  = getTokenPos("\"stop\":");
 static constexpr int P_R     = getTokenPos("\"col\":[[");
 static constexpr int P_G     = P_R + 5;
 static constexpr int P_B     = P_G + 5;
+static constexpr int P_NAME  = getTokenPos("\"name\":\"");
+static constexpr int P_MAC   = getTokenPos("\"mac\":\"");
 static constexpr int P_ARCH  = getTokenPos("\"arch\":\"");
 static constexpr int P_UP    = getTokenPos("\"uptime\":");
 static constexpr int P_CNT   = getTokenPos("\"count\":", P_UP);
@@ -58,30 +63,27 @@ static constexpr int P_LIVE  = getTokenPos("\"live\":");
 static constexpr int P_FREEH = getTokenPos("\"freeheap\":");
 
 void fWrite(char* b, int p, int l, int32_t vv) {    
-    bool sign = false;
-    uint32_t v = abs(vv);
-    for (int i = l - 1; i >= 0; i--, v /= 10)
-    {
-        b[p + i] = (v > 0 || i == l - 1) ? (v % 10) + '0' : ' ';
-        if (vv < 0 && !sign && b[p + i] == ' ')
-        {
-            sign = true;
-            b[p + i] = '-';
-        }
-    }
+    auto bufferEnd = b + p + l;
+    auto [lastChar, ec] = std::to_chars(b + p, bufferEnd, vv);
+    memset(lastChar, ' ', bufferEnd - lastChar);
 }
 
-void sWrite(char* b, int p, int l, const char* s) {
-    size_t len = strlen(s);
-    size_t copy_len = (len < (size_t)l) ? len : (size_t)l;
+void sWrite(char* jsonTemplate, int fieldIndex, unsigned int freeSpace, const char* input, bool quote = true) {
+    unsigned int copyLen = std::min(strlen(input), freeSpace);
+    char* target = jsonTemplate + fieldIndex;
 
-    memcpy(b + p, s, copy_len);
-    if (copy_len < (size_t)l) {
-        memset(b + p + copy_len, ' ', (size_t)l - copy_len);
+    memcpy(target, input, copyLen);
+    if (quote) {
+        target[copyLen++] = '"';
+        freeSpace++;
     }
+    memset(&target[copyLen], ' ', freeSpace - copyLen);
 }
 
-
+void bWrite(char* jsonTemplate, int fieldIndex, bool value) {
+    const char* input = (value) ? "true" : "false";
+    sWrite(jsonTemplate, fieldIndex, 5, input, false);
+}
 
 void uniConfigJsonResponse(AsyncWebServerRequest *request);
 
@@ -188,8 +190,8 @@ void uniConfigJsonResponse(AsyncWebServerRequest *request)
     memcpy_P(b, JSON_TPL, sizeof(JSON_TPL));
 
     // Current state
-    sWrite(b, P_ON, 6, Volatile::state.on ? "true" : "false");
-    sWrite(b, P_SEGON, 6, Volatile::state.on ? "true" : "false");
+    bWrite(b, P_ON, Volatile::state.on);
+    bWrite(b, P_SEGON, Volatile::state.on);
 
     // Brightness/LED count
     int ledsCount = Leds::getLedsNumber();
@@ -203,10 +205,16 @@ void uniConfigJsonResponse(AsyncWebServerRequest *request)
     fWrite(b, P_B, 4, Volatile::state.staticColor.blue);
 
     // Live
-    sWrite(b, P_LIVE, 6, (Volatile::state.live) ? "true" : "false");
+    bWrite(b, P_LIVE, Volatile::state.live);
 
     // RGBW capabilities
-    sWrite(b, P_RGBW, 6, (cfg.led.type == LedType::SK6812) ? "true" : "false");
+    bWrite(b, P_RGBW, (cfg.led.type == LedType::SK6812));
+
+    // Device Name
+    sWrite(b, P_NAME, 15, cfg.deviceName.c_str());
+
+    // MAC
+    sWrite(b, P_MAC, 12, Mdns::getDeviceShortMacAddress().c_str());    
 
     // Architecture
     sWrite(b, P_ARCH, 11, getDeviceArch().c_str());

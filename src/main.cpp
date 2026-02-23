@@ -146,7 +146,7 @@ void setup() {
         }
     }
 
-    startMDNS();
+    Mdns::startMDNS();
     setupWebServer(server);
     server.begin();
 

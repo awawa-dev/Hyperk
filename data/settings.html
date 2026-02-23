@@ -113,6 +113,11 @@
       <details>
         <summary role="button" class="outline secondary">Network</summary>
         <div>
+          <label>Device Name (MDNS)
+            <input type="text" name="deviceName" maxlength="15">
+          </label>
+        </div>        
+        <div>
           <label>Extra MDNS tag
             <input type="text" name="extraMdnsTag" maxlength="15">
           </label>
@@ -150,13 +155,17 @@
               Install Update
             </button>
           </div>
+
+          <div class="ota-footer">
+            <a href="https://awawa-dev.github.io/hyperk/privacy.html" target="_blank">Privacy Policy</a>
+          </div>
         </div>
       </details>
 
       <button type="submit">Save Settings</button>
     </form>
   </main>
-  <article id="toast">
+  <article id="toast" style="visibility: hidden;">
     <header>
       <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
         <span id="toast-title">💾 Configuration saved</span>
@@ -256,7 +265,7 @@
                   fwInfo.innerHTML = `<strong>${cfgDeviceVersion || 'unknown'}</strong> <small style="opacity:0.75">(${cfgDeviceArchitecture || '—'})</small>`;
               }
 
-              const fields = ['type', 'dataPin', 'clockPin', 'numLeds', 'brightness', 'r', 'g', 'b', 'effect', 'extraMdnsTag', 'calGain', 'calRed', 'calGreen', 'calBlue'];
+              const fields = ['type', 'dataPin', 'clockPin', 'numLeds', 'brightness', 'r', 'g', 'b', 'effect', 'deviceName', 'extraMdnsTag', 'calGain', 'calRed', 'calGreen', 'calBlue'];
               fields.forEach(field => {
                   const el = document.querySelector(`[name="${field}"]`);
                   if (el && l[field] !== undefined){
