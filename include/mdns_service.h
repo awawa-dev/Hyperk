@@ -1,4 +1,9 @@
 // File: include/mdns.h
 #pragma once
-String sanitizeMdnsService(String s);
-void startMDNS();
+
+namespace Mdns{
+    String sanitizeMdnsService(String s);
+    String getDeviceShortMacAddress();
+    void startMDNS();
+    void endMDNS();
+};

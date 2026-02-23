@@ -30,6 +30,7 @@
 #include "config.h"
 #include "leds.h"
 #include "manager.h"
+#include "mdns_service.h"
 
 Stats stats;
 
@@ -60,9 +61,14 @@ void managerLoop()
     Leds::synchronizeLedsToVolatileStateBeforeDeleyedRender();
     Leds::checkDeleyedRender();
 
-    if (_pendingReboot && millis() >= _rebootTime)
+    if (_pendingReboot)
     {
-        rebootDevice();
+        if (millis() >= _rebootTime) {
+            rebootDevice();
+        }
+        else {
+            Mdns::endMDNS();
+        }
     }
 
     if (_pendingApplyConfig && !_pendingReboot)
