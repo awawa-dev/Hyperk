@@ -14,7 +14,7 @@ The firmware can be flashed directly from your browser:
 
 ## Supported Hardware
 
-- **Espressif:** ESP8266, ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, WT32-ETH01
+- **Espressif:** ESP8266, ESP32, ESP32-S2, ESP32-S3, ESP32-C2, ESP32-C3, ESP32-C5, ESP32-C6, WT32-ETH01
 - **Raspberry Pi Pico:** RP2040, RP2350
 
 ## Supported LED Types

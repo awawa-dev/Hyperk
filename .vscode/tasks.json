@@ -17,7 +17,7 @@
     {
       "label": "Build ESP Core 3.x",
       "type": "shell",
-      "command": "pio run -e esp32c3 -e esp32s3 -e esp32c6",
+      "command": "pio run -e esp32c3 -e esp32s3 -e esp32c6 -e esp32c2 -e esp32c5",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "shared" },
       "options": {

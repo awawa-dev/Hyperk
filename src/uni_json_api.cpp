@@ -20,7 +20,7 @@
     R"raw("nl":{"on":false,"dur":60,"mode":1,"tbri":0},)raw" \
     R"raw("udpn":{"send":false,"recv":false}},)raw" \
     R"raw("info":{)raw" \
-    R"raw("ver":"0.15.3","vid":2508020,"cn":"Hyperk","name":"###############","mac":"############","arch":"###########","uptime":############,"live":#####,"freeheap":########,)raw" \
+    R"raw("ver":"0.15.3","vid":2508020,"cn":"######################","name":"###############","mac":"############","arch":"###########","uptime":############,"live":#####,"freeheap":########,)raw" \
     R"raw("leds":{"count":######,"maxseg":1,"lc":1,"seglc":[1],"cct":0,"wv":0,"maxpwr":0,"rgbw":#####},)raw" \
     R"raw("wifi":{"rssi":######,"signal":####,"channel":###},)raw" \
     R"raw("fs":{"u":16,"t":61,"pmt":0}},)raw" \
@@ -50,6 +50,7 @@ static constexpr int P_STOP  = getTokenPos("\"stop\":");
 static constexpr int P_R     = getTokenPos("\"col\":[[");
 static constexpr int P_G     = P_R + 5;
 static constexpr int P_B     = P_G + 5;
+static constexpr int P_CNAME = getTokenPos("\"cn\":\"");
 static constexpr int P_NAME  = getTokenPos("\"name\":\"");
 static constexpr int P_MAC   = getTokenPos("\"mac\":\"");
 static constexpr int P_ARCH  = getTokenPos("\"arch\":\"");
@@ -211,6 +212,7 @@ void uniConfigJsonResponse(AsyncWebServerRequest *request)
     bWrite(b, P_RGBW, (cfg.led.type == LedType::SK6812));
 
     // Device Name
+    sWrite(b, P_CNAME, 22, APP_NAME "_" APP_VERSION);
     sWrite(b, P_NAME, 15, cfg.deviceName.c_str());
 
     // MAC
