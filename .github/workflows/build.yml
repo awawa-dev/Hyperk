@@ -63,10 +63,7 @@ jobs:
 
       - name: Generate Job Summary
         run: |
-          echo "### Build Details" >> $GITHUB_STEP_SUMMARY
-          echo "**Group:** ${{ matrix.group }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Boards:**" >> $GITHUB_STEP_SUMMARY
-          echo "- ${{ matrix.boards }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Boards:** ${{ matrix.boards }}" >> $GITHUB_STEP_SUMMARY
 
   release:
     needs: build
