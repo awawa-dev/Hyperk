@@ -14,11 +14,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - group: ModernESP_C2_C6
-            boards: "esp32c2 esp32c6"
+          - group: ModernESP_C2
+            boards: "esp32c2"
             cache_extra: ".pio"
-          - group: ModernESP_C3_C5
-            boards: "esp32c3 esp32c5"
+          - group: ModernESP_C3_C5_C6
+            boards: "esp32c3 esp32c5 esp32c6"
             cache_extra: ""
           - group: ModernESP_S3
             boards: "esp32s3"
