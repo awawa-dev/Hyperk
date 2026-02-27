@@ -34,8 +34,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            ~/.platformio
-            .pio
+            ~/.platformio/packages
+            ~/.platformio/platforms
           key: pio-${{ matrix.group }}-${{ hashFiles('platformio.ini') }}
           restore-keys: |
             pio-${{ matrix.group }}-
@@ -48,7 +48,7 @@ jobs:
       - name: Build ${{ matrix.group }}
         run: |
           ENVS="${{ matrix.boards }}"
-          CMD="pio run"
+          CMD="pio run -j 2"
           for env in $ENVS; do
             CMD="$CMD -e $env"
           done
