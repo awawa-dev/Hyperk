@@ -16,14 +16,19 @@ jobs:
         include:
           - group: ModernESP_C2_C6
             boards: "esp32c2 esp32c6"
+            cache_extra: ".pio"
           - group: ModernESP_C3_C5
             boards: "esp32c3 esp32c5"
+            cache_extra: ""
           - group: ModernESP_S3
             boards: "esp32s3"
+            cache_extra: ""
           - group: ClassicESP
             boards: "esp32 esp32s2 esp32-eth01 esp8266"
+            cache_extra: ""
           - group: Pico
             boards: "pico pico2"
+            cache_extra: ""
 
     steps:
       - name: Checkout code
@@ -40,6 +45,7 @@ jobs:
           path: |
             ~/.platformio/packages
             ~/.platformio/platforms
+            ${{ matrix.cache_extra }}
           key: pio-${{ matrix.group }}-${{ hashFiles('platformio.ini') }}
           restore-keys: |
             pio-${{ matrix.group }}-
