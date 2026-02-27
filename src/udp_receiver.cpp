@@ -121,6 +121,7 @@ void handleDDP(WiFiUDP& udp) {
     }
 
     if (hdr->flags & 0x01) {
+        Volatile::updateStreamTimeout();
         Leds::renderLed(true);
     }
 }
@@ -184,6 +185,7 @@ void handleRealTime(WiFiUDP& udp) {
     else
         return;
 
+    Volatile::updateStreamTimeout();
     Leds::renderLed(true);
 }
 
@@ -216,5 +218,6 @@ void handleRAW(WiFiUDP& udp)
         setPixel(i++, rgb[0], rgb[1], rgb[2]);
     }
 
+    Volatile::updateStreamTimeout();
     Leds::renderLed(true);
 }

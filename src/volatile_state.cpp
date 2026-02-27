@@ -42,6 +42,8 @@ namespace Volatile{
     void updatePowerOn(bool on){
         internalState.on = on;
         updatedPowerOn = true;
+        
+        updateStreamTimeout(0);
     };
 
     void updateStaticColor(uint8_t red, uint8_t green, uint8_t blue){
@@ -49,7 +51,24 @@ namespace Volatile{
         internalState.staticColor.green = green;
         internalState.staticColor.blue = blue;
         updatedStaticColor = true;
+
+        updateStreamTimeout(0);
     };
+
+    void updateStreamTimeout(unsigned long timeout){
+        internalState.streamTimeout = (timeout) ? timeout + millis() : 0;
+        internalState.live = (timeout);
+    };
+
+    void checkStreamTimeout(){
+        if (internalState.streamTimeout > 0 && internalState.streamTimeout < millis())
+        {
+            updatePowerOn(false);
+
+            internalState.streamTimeout = 0;
+            internalState.live = false;
+        }        
+    };    
 
     bool clearUpdatedBrightnessState(){
         bool ret = updatedBrightness;
