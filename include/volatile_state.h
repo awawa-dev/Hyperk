@@ -11,14 +11,20 @@ struct VolatileState {
     } staticColor;
     uint8_t  effect     = 0;
     uint8_t  brightness = 255;
+    unsigned long streamTimeout = 0;
 };
 
 namespace Volatile{
     extern const VolatileState& state;
 
+    static constexpr unsigned long defaultStreamTimeout = 6500;
+
     void updateBrightness(uint8_t  brightness);
     void updatePowerOn(bool on);
     void updateStaticColor(uint8_t red, uint8_t green, uint8_t blue);
+    void updateStreamTimeout(unsigned long timeout = defaultStreamTimeout);
+
+    void checkStreamTimeout();
 
     bool clearUpdatedBrightnessState();
     bool clearUpdatedPowerOnState();

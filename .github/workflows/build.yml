@@ -6,9 +6,29 @@ on:
 
 jobs:
   build:
+    name: "${{ matrix.group }}"
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+
+    strategy:
+      matrix:
+        include:
+          - group: ModernESP_C2_C6
+            boards: "esp32c2 esp32c6"
+            cache_extra: ".pio"
+          - group: ModernESP_C3_C5
+            boards: "esp32c3 esp32c5"
+            cache_extra: ""
+          - group: ModernESP_S3
+            boards: "esp32s3"
+            cache_extra: ""
+          - group: ClassicESP
+            boards: "esp32 esp32s2 esp32-eth01 esp8266"
+            cache_extra: ""
+          - group: Pico
+            boards: "pico pico2"
+            cache_extra: ""
 
     steps:
       - name: Checkout code
@@ -19,26 +39,58 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install PlatformIO
+      - name: "Cache PlatformIO - ${{ matrix.group }}"
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.platformio/packages
+            ~/.platformio/platforms
+            ${{ matrix.cache_extra }}
+          key: pio-${{ matrix.group }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            pio-${{ matrix.group }}-
+
+      - name: Install PlatformIO + esptool
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade platformio esptool
 
-      - name: Build All Environments
+      - name: Build ${{ matrix.group }}
         run: |
-          pio run -e esp32c3 -e esp32s3 -e esp32c6 -e esp32c2 -e esp32c5
-          pio run -e esp32 -e esp32s2 -e esp32-eth01 -e esp8266          
-          pio run -e pico -e pico2
+          ENVS="${{ matrix.boards }}"
+          CMD="pio run -j 2"
+          for env in $ENVS; do
+            CMD="$CMD -e $env"
+          done
+          eval "$CMD" || (sleep 25 && echo "🔄 Retry for ${{ matrix.group }} (network?)" && eval "$CMD")
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+      - name: "Upload Artifacts - ${{ matrix.group }}"
+        uses: actions/upload-artifact@v7
         with:
-          name: Hyperk-Firmware-Pack
+          name: Hyperk-Firmware-${{ matrix.group }}
           path: release/
           if-no-files-found: error
 
+      - name: Generate Job Summary
+        run: |
+          echo "**Boards:** ${{ matrix.boards }}" >> $GITHUB_STEP_SUMMARY
+
+  release:
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: Hyperk-Firmware-*
+          path: release
+          merge-multiple: true
+
       - name: Create Pre-release
-        if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: release/*

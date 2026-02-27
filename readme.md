@@ -36,6 +36,8 @@ The firmware can be flashed directly from your browser:
 | UDP DDP | 4048 | DDP listener |
 | UDP RealTime | 21324 | Real-time stream listener |
 | UDP Raw RGB | 5568 | Raw color stream listener |
+  
+<small>LEDs turn off automatically 6.5s after stream loss.</small>
 
 ---
 *Developed for performance. Optimized for HyperHDR. [Privacy & Technical Note](https://awawa-dev.github.io/hyperk/privacy.html)*

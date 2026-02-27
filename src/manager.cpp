@@ -31,6 +31,7 @@
 #include "leds.h"
 #include "manager.h"
 #include "mdns_service.h"
+#include "volatile_state.h"
 
 Stats stats;
 
@@ -58,6 +59,8 @@ void managerScheduleReboot(uint32_t delay_ms)
 
 void managerLoop()
 {
+    Volatile::checkStreamTimeout();
+
     Leds::synchronizeLedsToVolatileStateBeforeDeleyedRender();
     Leds::checkDeleyedRender();
 
