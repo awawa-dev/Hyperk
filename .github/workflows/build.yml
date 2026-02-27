@@ -14,8 +14,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - group: ModernESP
-            boards: "esp32c3 esp32s3 esp32c6 esp32c2 esp32c5"
+          - group: ModernESP_C-Series
+            boards: "esp32c3 esp32c6 esp32c2 esp32c5"
+          - group: ModernESP_S3
+            boards: "esp32s3"
           - group: ClassicESP
             boards: "esp32 esp32s2 esp32-eth01 esp8266"
           - group: Pico
