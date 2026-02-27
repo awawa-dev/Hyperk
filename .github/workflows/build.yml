@@ -26,7 +26,7 @@ jobs:
 
       - name: Build All Environments
         run: |
-          pio run -e esp32c3 -e esp32s3 -e esp32c6
+          pio run -e esp32c3 -e esp32s3 -e esp32c6 -e esp32c2 -e esp32c5
           pio run -e esp32 -e esp32s2 -e esp32-eth01 -e esp8266          
           pio run -e pico -e pico2
 

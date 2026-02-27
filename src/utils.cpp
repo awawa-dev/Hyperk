@@ -86,6 +86,10 @@ String getDeviceArch()
         modelName = F("ESP32-C3");
     #elif defined(CONFIG_IDF_TARGET_ESP32C6)
         modelName = F("ESP32-C6");
+    #elif defined(CONFIG_IDF_TARGET_ESP32C2)
+        modelName = F("ESP32-C2");
+    #elif defined(CONFIG_IDF_TARGET_ESP32C5)
+        modelName = F("ESP32-C5");        
     #elif defined(ESP8266)
         modelName = F("ESP8266");
     #else

@@ -268,7 +268,9 @@ namespace Leds{
                     case 5: FastLED.addLeds<WS2812, 5, GRB>(leds, virtualLedsNumber); break;
                     case 6: FastLED.addLeds<WS2812, 6, GRB>(leds, virtualLedsNumber); break;
                     case 7: FastLED.addLeds<WS2812, 7, GRB>(leds, virtualLedsNumber); break;
+                    #if !defined(CONFIG_IDF_TARGET_ESP32C2)
                     case 8: FastLED.addLeds<WS2812, 8, GRB>(leds, virtualLedsNumber); break;
+                    #endif
                     case 10: FastLED.addLeds<WS2812, 10, GRB>(leds, virtualLedsNumber); break;
                     #if defined(CONFIG_IDF_TARGET_ESP32C6)
                     case 15: FastLED.addLeds<WS2812, 15, GRB>(leds, virtualLedsNumber); break;
@@ -285,6 +287,9 @@ namespace Leds{
                     #elif defined(CONFIG_IDF_TARGET_ESP32C3)
                     case 20: FastLED.addLeds<WS2812, 20, GRB>(leds, virtualLedsNumber); break;
                     case 21: FastLED.addLeds<WS2812, 21, GRB>(leds, virtualLedsNumber); break;
+                    #elif defined(CONFIG_IDF_TARGET_ESP32C5)
+                    case 11: FastLED.addLeds<WS2812, 11, GRB>(leds, virtualLedsNumber); break;
+                    case 27: FastLED.addLeds<WS2812, 27, GRB>(leds, virtualLedsNumber); break;
                     #endif
                     default:
                         FastLED.addLeds<WS2812, 2, GRB>(leds, virtualLedsNumber);

@@ -175,4 +175,21 @@ void loop()
     #if !defined(ARDUINO_ARCH_ESP32)
         MDNS.update();
     #endif
+
+
+    #if defined(DEBUG_LOG) && (defined(ESP32) || defined(ESP8266))
+        static uint32_t lastAlive = 0;
+        if (millis() - lastAlive > 1000) {
+            lastAlive = millis();
+            uint32_t log1 = 0, log2 = 0;
+            #if defined(ESP32)
+                log1 = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+                log2 = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+            #else
+                log1 = ESP.getMaxFreeBlockSize();
+                log2 = ESP.getHeapFragmentation();
+            #endif
+            Serial.printf("[MEM_REPORT %lu] Heap: %6u | Largest block: %6u | Min free/frag: %6u\n", millis(), ESP.getFreeHeap(), log1, log2);
+        }
+    #endif    
 }
