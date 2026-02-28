@@ -70,7 +70,7 @@ def copy_firmware(target, source, env):
             elif os.path.exists(bootloader) and os.path.exists(partitions):
                 mcu = env.get("BOARD_MCU", "esp32")                
                 factory_path = os.path.join(dist_dir, f"Hyperk_{app_version}_{env_name}_factory.bin")
-                boot_addr = "0x1000" if mcu in ["esp32", "esp32s2"] else "0x0"
+                boot_addr = "0x1000" if mcu in ["esp32", "esp32s2"] else ("0x2000" if mcu == "esp32c5" else "0x0")
                 try:
                     run_merge_bin(mcu, factory_path, boot_addr, bootloader, partitions, source_path, env)
                     print(f">>> [SUCCESS] Factory firmware: {os.path.basename(factory_path)}")
