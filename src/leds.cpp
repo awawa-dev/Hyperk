@@ -87,6 +87,7 @@
 
 namespace Leds{
     volatile bool delayedRender = false;
+    uint16_t briPlus = 256;    
 
     int getLedsNumber()
     {
@@ -140,7 +141,7 @@ namespace Leds{
         return true;
     }
 
-    void synchronizeLedsToVolatileStateBeforeDeleyedRender()
+    void synchronizeLedsToVolatileStateBeforeDelayedRender()
     {
         if (delayedRender || !canRender())
             return;
@@ -150,9 +151,7 @@ namespace Leds{
         {
             updated = true;
             Log::debug("Updating brightness to: ", Volatile::state.brightness);
-            #ifdef USE_FASTLED
-                FastLED.setBrightness(Volatile::state.brightness);
-            #endif
+            briPlus = Volatile::state.brightness + 1;
         }
 
         if (Volatile::clearUpdatedPowerOnState())
@@ -174,7 +173,13 @@ namespace Leds{
             auto b = (Volatile::state.on) ? Volatile::state.staticColor.blue : 0;
 
             #ifdef USE_FASTLED
-                fill_solid(leds, getLedsNumber(), CRGB(r, g, b));
+                for(int i = 0; i < getLedsNumber(); i++) {
+                    if (Volatile::state.brightness != 255)
+                        setLed<true>(i, r, g, b);
+                    else
+                        setLed<false>(i, r, g, b);
+                }
+
                 FastLED.show();
             #else
                 if (dotstar == nullptr && neopixel == nullptr && neopixelRgbw == nullptr) 
@@ -209,6 +214,9 @@ namespace Leds{
         #ifdef USE_FASTLED
             if (FastLED.count())
             {
+                if (cfgLedType == LedType::SK6812) {
+                    setParamsAndPrepareCalibration(calGain, calRed, calGreen, calBlue);
+                }
                 return;
             }
 
@@ -243,10 +251,9 @@ namespace Leds{
 
             if (fastLedsType == LedType::SK6812)
             {
+                setParamsAndPrepareCalibration(calGain, calRed, calGreen, calBlue);
                 virtualLedsNumber = (fastLedsNumber * 4 + 2) / 3;
-                const size_t bytesToAllocate = virtualLedsNumber * 3;
-                leds = reinterpret_cast<CRGB*>(new uint8_t[bytesToAllocate]);
-                memset(leds, 0, bytesToAllocate);
+                leds = new CRGB[virtualLedsNumber];
             }
             else
             {
@@ -257,42 +264,42 @@ namespace Leds{
             {
                 switch (cfgLedDataPin) {
                     #if !defined(CONFIG_IDF_TARGET_ESP32S3)
-                    case 0: FastLED.addLeds<WS2812, 0, GRB>(leds, virtualLedsNumber); break;
+                    case 0: FastLED.addLeds<WS2812, 0, RGB>(leds, virtualLedsNumber); break;
                     #endif
-                    case 1: FastLED.addLeds<WS2812, 1, GRB>(leds, virtualLedsNumber); break;
-                    case 2: FastLED.addLeds<WS2812, 2, GRB>(leds, virtualLedsNumber); break;
+                    case 1: FastLED.addLeds<WS2812, 1, RGB>(leds, virtualLedsNumber); break;
+                    case 2: FastLED.addLeds<WS2812, 2, RGB>(leds, virtualLedsNumber); break;
                     #if !defined(CONFIG_IDF_TARGET_ESP32S3)
-                    case 3: FastLED.addLeds<WS2812, 3, GRB>(leds, virtualLedsNumber); break;
+                    case 3: FastLED.addLeds<WS2812, 3, RGB>(leds, virtualLedsNumber); break;
                     #endif
-                    case 4: FastLED.addLeds<WS2812, 4, GRB>(leds, virtualLedsNumber); break;
-                    case 5: FastLED.addLeds<WS2812, 5, GRB>(leds, virtualLedsNumber); break;
-                    case 6: FastLED.addLeds<WS2812, 6, GRB>(leds, virtualLedsNumber); break;
-                    case 7: FastLED.addLeds<WS2812, 7, GRB>(leds, virtualLedsNumber); break;
+                    case 4: FastLED.addLeds<WS2812, 4, RGB>(leds, virtualLedsNumber); break;
+                    case 5: FastLED.addLeds<WS2812, 5, RGB>(leds, virtualLedsNumber); break;
+                    case 6: FastLED.addLeds<WS2812, 6, RGB>(leds, virtualLedsNumber); break;
+                    case 7: FastLED.addLeds<WS2812, 7, RGB>(leds, virtualLedsNumber); break;
                     #if !defined(CONFIG_IDF_TARGET_ESP32C2)
-                    case 8: FastLED.addLeds<WS2812, 8, GRB>(leds, virtualLedsNumber); break;
+                    case 8: FastLED.addLeds<WS2812, 8, RGB>(leds, virtualLedsNumber); break;
                     #endif
-                    case 10: FastLED.addLeds<WS2812, 10, GRB>(leds, virtualLedsNumber); break;
+                    case 10: FastLED.addLeds<WS2812, 10, RGB>(leds, virtualLedsNumber); break;
                     #if defined(CONFIG_IDF_TARGET_ESP32C6)
-                    case 15: FastLED.addLeds<WS2812, 15, GRB>(leds, virtualLedsNumber); break;
-                    case 18: FastLED.addLeds<WS2812, 18, GRB>(leds, virtualLedsNumber); break;
-                    case 19: FastLED.addLeds<WS2812, 19, GRB>(leds, virtualLedsNumber); break;
-                    case 20: FastLED.addLeds<WS2812, 20, GRB>(leds, virtualLedsNumber); break;
-                    case 21: FastLED.addLeds<WS2812, 21, GRB>(leds, virtualLedsNumber); break;
-                    case 22: FastLED.addLeds<WS2812, 22, GRB>(leds, virtualLedsNumber); break;
+                    case 15: FastLED.addLeds<WS2812, 15, RGB>(leds, virtualLedsNumber); break;
+                    case 18: FastLED.addLeds<WS2812, 18, RGB>(leds, virtualLedsNumber); break;
+                    case 19: FastLED.addLeds<WS2812, 19, RGB>(leds, virtualLedsNumber); break;
+                    case 20: FastLED.addLeds<WS2812, 20, RGB>(leds, virtualLedsNumber); break;
+                    case 21: FastLED.addLeds<WS2812, 21, RGB>(leds, virtualLedsNumber); break;
+                    case 22: FastLED.addLeds<WS2812, 22, RGB>(leds, virtualLedsNumber); break;
                     #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-                    case 16: FastLED.addLeds<WS2812, 16, GRB>(leds, virtualLedsNumber); break;
-                    case 17: FastLED.addLeds<WS2812, 17, GRB>(leds, virtualLedsNumber); break;
-                    case 18: FastLED.addLeds<WS2812, 18, GRB>(leds, virtualLedsNumber); break;
-                    case 48: FastLED.addLeds<WS2812, 48, GRB>(leds, virtualLedsNumber); break;
+                    case 16: FastLED.addLeds<WS2812, 16, RGB>(leds, virtualLedsNumber); break;
+                    case 17: FastLED.addLeds<WS2812, 17, RGB>(leds, virtualLedsNumber); break;
+                    case 18: FastLED.addLeds<WS2812, 18, RGB>(leds, virtualLedsNumber); break;
+                    case 48: FastLED.addLeds<WS2812, 48, RGB>(leds, virtualLedsNumber); break;
                     #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-                    case 20: FastLED.addLeds<WS2812, 20, GRB>(leds, virtualLedsNumber); break;
-                    case 21: FastLED.addLeds<WS2812, 21, GRB>(leds, virtualLedsNumber); break;
+                    case 20: FastLED.addLeds<WS2812, 20, RGB>(leds, virtualLedsNumber); break;
+                    case 21: FastLED.addLeds<WS2812, 21, RGB>(leds, virtualLedsNumber); break;
                     #elif defined(CONFIG_IDF_TARGET_ESP32C5)
-                    case 11: FastLED.addLeds<WS2812, 11, GRB>(leds, virtualLedsNumber); break;
-                    case 27: FastLED.addLeds<WS2812, 27, GRB>(leds, virtualLedsNumber); break;
+                    case 11: FastLED.addLeds<WS2812, 11, RGB>(leds, virtualLedsNumber); break;
+                    case 27: FastLED.addLeds<WS2812, 27, RGB>(leds, virtualLedsNumber); break;
                     #endif
                     default:
-                        FastLED.addLeds<WS2812, 2, GRB>(leds, virtualLedsNumber);
+                        FastLED.addLeds<WS2812, 2, RGB>(leds, virtualLedsNumber);
                         break;
                 }
             }
@@ -300,20 +307,21 @@ namespace Leds{
             { // SPI (APA102 / SK9822)
                 switch (cfgLedDataPin) {
                     #if defined(CONFIG_IDF_TARGET_ESP32S3)
-                        case 11: FastLED.addLeds<APA102, 11, 12, BGR>(leds, virtualLedsNumber); break;
+                        case 11: FastLED.addLeds<APA102, 11, 12, BRG>(leds, virtualLedsNumber); break;
                     #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-                        case 7:  FastLED.addLeds<APA102, 7, 6, BGR>(leds, virtualLedsNumber); break;
+                        case 7:  FastLED.addLeds<APA102, 7, 6, BRG>(leds, virtualLedsNumber); break;
                     #elif defined(CONFIG_IDF_TARGET_ESP32C6)
-                        case 6:  FastLED.addLeds<APA102, 6, 5, BGR>(leds, virtualLedsNumber); break;
+                        case 6:  FastLED.addLeds<APA102, 6, 5, BRG>(leds, virtualLedsNumber); break;
                     #endif
                     
                     default:                        
                             Log::debug("!!! FATAL ERROR: Invalid LED Data Pin. Must use Hardware SPI pins. !!!");
-                            FastLED.addLeds<APA102, 7, 6, BGR>(leds, virtualLedsNumber);
+                            FastLED.addLeds<APA102, 7, 6, BRG>(leds, virtualLedsNumber);
                 }
             }
 
-            FastLED.setBrightness(Volatile::state.brightness);
+            FastLED.setBrightness(255);
+
         #else
             if (cfgLedType == LedType::WS2812 || cfgLedType == LedType::SK6812)
             { // clockless
@@ -352,24 +360,36 @@ namespace Leds{
         Volatile::updateStaticColor(cfg.led.r, cfg.led.g, cfg.led.b);
     }
 
+    inline uint8_t scaleBri(uint8_t v)
+    {
+        return (static_cast<uint16_t>(v) * briPlus) >> 8;
+    }
+
     template<bool applyBrightness>
     void setLed(int index, uint8_t r, uint8_t g, uint8_t b)
     {
         #ifdef USE_FASTLED
+            if constexpr (applyBrightness) {
+                r = scaleBri(r);
+                g = scaleBri(g);
+                b = scaleBri(b);
+            }
+            
             if (fastLedsType == LedType::SK6812)
             {            
                 if (index >= fastLedsNumber) return;
                 const RgbwColor calibrated = rgb2rgbw(r, g, b);
                 uint16_t i = index * 4;
-                reinterpret_cast<uint8_t*>(leds)[i]     = calibrated.G;
-                reinterpret_cast<uint8_t*>(leds)[i + 1] = calibrated.R;
-                reinterpret_cast<uint8_t*>(leds)[i + 2] = calibrated.B;
-                reinterpret_cast<uint8_t*>(leds)[i + 3] = calibrated.W;
+                auto raw = reinterpret_cast<uint8_t*>(leds);
+                raw[i]     = calibrated.G;
+                raw[i + 1] = calibrated.R;
+                raw[i + 2] = calibrated.B;
+                raw[i + 3] = calibrated.W;
             }
             else
             {
                 if (index >= fastLedsNumber) return;
-                leds[index] = CRGB(r, g, b);
+                leds[index] = CRGB(g, r, b);
             }
         #else
             if (dotstar != nullptr)
@@ -397,19 +417,27 @@ namespace Leds{
     void setLedW(int index, uint8_t r, uint8_t g, uint8_t b, uint8_t w)
     {
         #ifdef USE_FASTLED
+            if constexpr (applyBrightness) {
+                r = scaleBri(r);
+                g = scaleBri(g);
+                b = scaleBri(b);
+                w = scaleBri(w);
+            }
+
             if (fastLedsType == LedType::SK6812)
             {
                 if (index >= fastLedsNumber) return;
                 uint16_t i = index * 4;
-                reinterpret_cast<uint8_t*>(leds)[i]     = g;
-                reinterpret_cast<uint8_t*>(leds)[i + 1] = r;
-                reinterpret_cast<uint8_t*>(leds)[i + 2] = b;
-                reinterpret_cast<uint8_t*>(leds)[i + 3] = w;
+                auto raw = reinterpret_cast<uint8_t*>(leds);
+                raw[i]     = g;
+                raw[i + 1] = r;
+                raw[i + 2] = b;
+                raw[i + 3] = w;
             }
             else
             {
                 if (index >= fastLedsNumber) return;
-                leds[index] = CRGB(r, g, b);
+                leds[index] = CRGB(g, r, b);
             }
         #else
             if (dotstar != nullptr)
@@ -433,7 +461,7 @@ namespace Leds{
         #endif
     }
 
-    void checkDeleyedRender()
+    void checkDelayedRender()
     {
         if (delayedRender)
         {
@@ -491,10 +519,7 @@ namespace Leds{
     }
 
     template void setLed<false>(int, uint8_t, uint8_t, uint8_t);
-    template void setLedW<false>(int, uint8_t, uint8_t, uint8_t, uint8_t);
-
-    #ifndef USE_FASTLED
-        template void setLed<true>(int, uint8_t, uint8_t, uint8_t);
-        template void setLedW<true>(int, uint8_t, uint8_t, uint8_t, uint8_t);
-    #endif
+    template void setLedW<false>(int, uint8_t, uint8_t, uint8_t, uint8_t);    
+    template void setLed<true>(int, uint8_t, uint8_t, uint8_t);
+    template void setLedW<true>(int, uint8_t, uint8_t, uint8_t, uint8_t);    
 }

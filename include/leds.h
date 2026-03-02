@@ -7,9 +7,9 @@
 namespace Leds {
     void applyLedConfig();
     int getLedsNumber();
-    void checkDeleyedRender();
+    void checkDelayedRender();
     void renderLed(bool isNewFrame);
-    void synchronizeLedsToVolatileStateBeforeDeleyedRender();
+    void synchronizeLedsToVolatileStateBeforeDelayedRender();
 
     template<bool applyBrightness>
     void setLed(int index, uint8_t r, uint8_t g, uint8_t b);

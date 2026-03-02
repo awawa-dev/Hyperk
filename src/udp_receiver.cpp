@@ -59,15 +59,9 @@ void handleDDP(WiFiUDP& udp) {
         return;
     }
 
-    #ifdef USE_FASTLED
-        const bool brightnessControl = false;
-        auto setPixel = Leds::setLed<false>;
-        auto setPixelW = Leds::setLedW<false>;
-    #else
-        const bool brightnessControl = (Volatile::state.brightness != 255);
-        auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
-        auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
-    #endif     
+    const bool brightnessControl = (Volatile::state.brightness != 255);
+    auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
+    auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
 
     uint8_t buffer[packetSize];    
     uint8_t* endBuffer = &(buffer[0]) + udp.read(buffer, packetSize);        
@@ -134,15 +128,9 @@ void handleRealTime(WiFiUDP& udp) {
         return;
     }
 
-    #ifdef USE_FASTLED
-        const bool brightnessControl = false;
-        auto setPixel = Leds::setLed<false>;
-        auto setPixelW = Leds::setLedW<false>;
-    #else
-        const bool brightnessControl = (Volatile::state.brightness != 255);
-        auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
-        auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
-    #endif     
+    const bool brightnessControl = (Volatile::state.brightness != 255);
+    auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
+    auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
 
     uint8_t buffer[packetSize]; 
     uint8_t* endBuffer = &(buffer[0]) + udp.read(buffer, packetSize);    
@@ -198,15 +186,9 @@ void handleRAW(WiFiUDP& udp)
         return;
     }
 
-    #ifdef USE_FASTLED
-        const bool brightnessControl = false;
-        auto setPixel = Leds::setLed<false>;
-        auto setPixelW = Leds::setLedW<false>;
-    #else
-        const bool brightnessControl = (Volatile::state.brightness != 255);
-        auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
-        auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
-    #endif    
+    const bool brightnessControl = (Volatile::state.brightness != 255);
+    auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
+    auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
 
     uint8_t buffer[packetSize]; 
     uint8_t* endBuffer = &(buffer[0]) + udp.read(buffer, packetSize);    

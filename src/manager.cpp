@@ -61,8 +61,8 @@ void managerLoop()
 {
     Volatile::checkStreamTimeout();
 
-    Leds::synchronizeLedsToVolatileStateBeforeDeleyedRender();
-    Leds::checkDeleyedRender();
+    Leds::synchronizeLedsToVolatileStateBeforeDelayedRender();
+    Leds::checkDelayedRender();
 
     if (_pendingReboot)
     {

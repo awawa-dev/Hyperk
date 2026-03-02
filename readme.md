@@ -1,6 +1,6 @@
 # Hyperk
 
-Hyperk is a minimalist, high-performance uni-platform WiFi LED driver for ESP8266, ESP32 (S2, S3, C3, C6), Raspberry Pi Pico W (RP2040, RP2350). Designed as a lightweight and streamlined component that avoids unnecessary complexity, it delivers low‑latency performance and integrates smoothly with platforms such as HyperHDR, while offering essential home‑automation capabilities through a clean, modern codebase.
+Hyperk is a minimalist, high-performance uni-platform WiFi LED driver for ESP8266, ESP32 (S2, S3, C2, C3, C5, C6), Raspberry Pi Pico W (RP2040, RP2350). Designed as a lightweight and streamlined component that avoids unnecessary complexity, it delivers low‑latency performance and integrates smoothly with platforms such as HyperHDR, while offering essential home‑automation capabilities through a clean, modern codebase.
 
 ## Installation
 
