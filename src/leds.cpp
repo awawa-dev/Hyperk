@@ -39,31 +39,31 @@
     #include <NeoPixelBus.h>
 
     #if defined(CONFIG_IDF_TARGET_ESP32C6)
-        typedef NeoPixelBus<DotStarLbgrFeature, DotStarSpi10MhzMethod > DotStar;
+        typedef NeoPixelBus<DotStarBgrFeature, DotStarSpi10MhzMethod > DotStar;
         typedef NeoPixelBus<NeoGrbFeature, NeoEsp32BitBangWs2812Method > NeoPixel;
         typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32BitBangWs2812Method > NeoPixelRgbw;
     #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-        typedef NeoPixelBus<DotStarLbgrFeature, DotStarSpi10MhzMethod > DotStar;
+        typedef NeoPixelBus<DotStarBgrFeature, DotStarSpi10MhzMethod > DotStar;
         typedef NeoPixelBus<NeoGrbFeature, NeoEsp32Rmt0Ws2812xMethod > NeoPixel;
         typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32Rmt0Sk6812Method > NeoPixelRgbw;
     #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-        typedef NeoPixelBus<DotStarLbgrFeature, DotStarSpi10MhzMethod > DotStar;
+        typedef NeoPixelBus<DotStarBgrFeature, DotStarSpi10MhzMethod > DotStar;
         typedef NeoPixelBus<NeoGrbFeature, NeoEsp32LcdX8Ws2812Method > NeoPixel;
         typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32LcdX8Sk6812Method > NeoPixelRgbw;    
     #elif defined(CONFIG_IDF_TARGET_ESP32S2)
-        typedef NeoPixelBus<DotStarLbgrFeature, DotStarSpi10MhzMethod > DotStar;
+        typedef NeoPixelBus<DotStarBgrFeature, DotStarSpi10MhzMethod > DotStar;
         typedef NeoPixelBus<NeoGrbFeature, NeoEsp32I2s0Ws2812xMethod> NeoPixel;
         typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32I2s0Sk6812Method> NeoPixelRgbw;
     #elif defined(ARDUINO_ARCH_ESP32)
-        typedef NeoPixelBus<DotStarLbgrFeature, DotStarSpi10MhzMethod > DotStar;
+        typedef NeoPixelBus<DotStarBgrFeature, DotStarSpi10MhzMethod > DotStar;
         typedef NeoPixelBus<NeoGrbFeature, NeoEsp32I2s1800KbpsMethod> NeoPixel;
         typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32I2s1800KbpsMethod> NeoPixelRgbw;
     #elif defined(ARDUINO_ARCH_ESP8266)
-        typedef NeoPixelBus<DotStarLbgrFeature, DotStarSpiMethod> DotStar;
+        typedef NeoPixelBus<DotStarBgrFeature, DotStarSpiMethod> DotStar;
         typedef NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart1Ws2812xMethod> NeoPixel;
         typedef NeoPixelBus<NeoGrbwFeature, NeoEsp8266Uart1Sk6812Method> NeoPixelRgbw;
     #else // Raspberry Pi Pico
-        typedef NeoPixelBus<DotStarLbgrFeature, DotStarSpi10MhzMethod> DotStar;
+        typedef NeoPixelBus<DotStarBgrFeature, DotStarSpi10MhzMethod> DotStar;
         typedef NeoPixelBus<NeoGrbFeature, Rp2040x4Pio0Ws2812xMethod> NeoPixel;
         typedef NeoPixelBus<NeoGrbwFeature, Rp2040x4Pio0Ws2812xMethod> NeoPixelRgbw;
     #endif
@@ -114,7 +114,7 @@ namespace Leds{
                 return;
 
             if (dotstar != nullptr) 
-                {dotstar->ClearTo(RgbwColor(0, 0, 0, 31)); dotstar->Show();}
+                {dotstar->ClearTo(RgbColor(0, 0, 0)); dotstar->Show();}
             else if (neopixel != nullptr)
                 {neopixel->ClearTo(RgbColor(0, 0, 0)); neopixel->Show();}
             else if (neopixelRgbw != nullptr)
@@ -171,39 +171,15 @@ namespace Leds{
             auto r = (Volatile::state.on) ? Volatile::state.staticColor.red : 0;
             auto g = (Volatile::state.on) ? Volatile::state.staticColor.green : 0;
             auto b = (Volatile::state.on) ? Volatile::state.staticColor.blue : 0;
+            
+            for(int i = 0; i < getLedsNumber(); i++) {
+                if (Volatile::state.brightness != 255)
+                    setLed<true>(i, r, g, b);
+                else
+                    setLed<false>(i, r, g, b);
+            }
 
-            #ifdef USE_FASTLED
-                for(int i = 0; i < getLedsNumber(); i++) {
-                    if (Volatile::state.brightness != 255)
-                        setLed<true>(i, r, g, b);
-                    else
-                        setLed<false>(i, r, g, b);
-                }
-
-                FastLED.show();
-            #else
-                if (dotstar == nullptr && neopixel == nullptr && neopixelRgbw == nullptr) 
-                    return;
-
-                if (dotstar != nullptr) {
-                    RgbwColor col(r, g, b, 31);
-                    col = col.Dim(Volatile::state.brightness);
-                    dotstar->ClearTo(col);
-                    dotstar->Show();
-                }
-                else if (neopixel != nullptr) {
-                    RgbColor col(r, g, b);
-                    col = col.Dim(Volatile::state.brightness);
-                    neopixel->ClearTo(col);
-                    neopixel->Show();
-                }
-                else if (neopixelRgbw != nullptr) {
-                    RgbwColor col(r, g, b, 0);
-                    col = col.Dim(Volatile::state.brightness);
-                    neopixelRgbw->ClearTo(col);
-                    neopixelRgbw->Show();
-                }
-            #endif
+            renderLed(true);
         }
     }
 
@@ -368,13 +344,13 @@ namespace Leds{
     template<bool applyBrightness>
     void setLed(int index, uint8_t r, uint8_t g, uint8_t b)
     {
+        if constexpr (applyBrightness) {
+            r = scaleBri(r);
+            g = scaleBri(g);
+            b = scaleBri(b);
+        }
         #ifdef USE_FASTLED
-            if constexpr (applyBrightness) {
-                r = scaleBri(r);
-                g = scaleBri(g);
-                b = scaleBri(b);
-            }
-            
+
             if (fastLedsType == LedType::SK6812)
             {            
                 if (index >= fastLedsNumber) return;
@@ -394,20 +370,17 @@ namespace Leds{
         #else
             if (dotstar != nullptr)
             {
-                RgbwColor col(r, g, b, 31);
-                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
+                RgbColor col(r, g, b);
                 dotstar->SetPixelColor(index, col);
             }
             else if (neopixel != nullptr)
             {
                 RgbColor col(r, g, b);
-                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
                 neopixel->SetPixelColor(index, col);
             }
             else if (neopixelRgbw != nullptr)
             {
                 RgbwColor col = rgb2rgbw(r, g, b);
-                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
                 neopixelRgbw->SetPixelColor(index, col);
             }
         #endif
@@ -416,13 +389,15 @@ namespace Leds{
     template<bool applyBrightness>
     void setLedW(int index, uint8_t r, uint8_t g, uint8_t b, uint8_t w)
     {
+        if constexpr (applyBrightness) {
+            r = scaleBri(r);
+            g = scaleBri(g);
+            b = scaleBri(b);
+            w = scaleBri(w);
+        }
+
         #ifdef USE_FASTLED
-            if constexpr (applyBrightness) {
-                r = scaleBri(r);
-                g = scaleBri(g);
-                b = scaleBri(b);
-                w = scaleBri(w);
-            }
+
 
             if (fastLedsType == LedType::SK6812)
             {
@@ -442,20 +417,17 @@ namespace Leds{
         #else
             if (dotstar != nullptr)
             {
-                RgbwColor col(r, g, b, min(w, (uint8_t)31));
-                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
+                RgbColor col(r, g, b);
                 dotstar->SetPixelColor(index, col);
             }
             else if (neopixel != nullptr)
             {
                 RgbColor col(r, g, b);
-                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
                 neopixel->SetPixelColor(index, col);
             }
             else if (neopixelRgbw != nullptr)
             {
                 RgbwColor col(r, g, b, w);
-                if constexpr (applyBrightness) col = col.Dim(Volatile::state.brightness);
                 neopixelRgbw->SetPixelColor(index, col);
             }
         #endif
