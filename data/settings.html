@@ -110,7 +110,7 @@
         </div>
       </details>
 
-      <details>
+      <details ontoggle="loadSubScript('network', 'setupNetwork')">
         <summary role="button" class="outline secondary">Network</summary>
         <div>
           <label>Device Name (MDNS)
@@ -122,6 +122,9 @@
             <input type="text" name="extraMdnsTag" maxlength="15">
           </label>
         </div>
+        <div style="margin-top: 1rem;">
+          <button type="button" id="btn-switch-ap">Switch to AP</button>
+        </div>        
       </details>
 
       <details id="ota_page" style="display: none;" ontoggle="loadSubScript('ota', null)">
@@ -192,6 +195,7 @@
       let cfgDeviceArchitecture = "";
       let cfgBoardArchitecture = ""
       let cfgDeviceVersion = "";
+      let cfgSSID = "";
 
       const loadedScripts = {};
       function loadSubScript(scriptName, initFunName) {
@@ -244,6 +248,11 @@
               if (!res.ok) return;
               const c = await res.json();
               const l = c.config;
+
+              const SSIDField = l["ssid"];         
+              if (SSIDField !== undefined){
+                  cfgSSID = SSIDField;                  
+              }
 
               const archField = l["architecture"];              
               if (archField !== undefined){

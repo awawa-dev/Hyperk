@@ -14,3 +14,5 @@ managed_components/
 sdkconfig*
 ccache.exe
 .ccache/
+CMakeLists.txt
+dependencies.lock

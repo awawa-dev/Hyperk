@@ -125,3 +125,10 @@ details summary[role="button"]:focus {
   opacity: 0.6;
   transition: opacity 0.2s ease;
 }
+
+#btn-switch-ap {
+  background-color: #eab308;
+  border-color: #eab308;
+  color: #111111;
+  font-weight: bold;
+}

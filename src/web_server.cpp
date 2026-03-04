@@ -160,6 +160,22 @@ void setupWebServer(AsyncWebServer& server) {
     server.on("/save_config", HTTP_POST, [](AsyncWebServerRequest *request) {
         AppConfig cfg = Config::cfg;
         bool needsRestart = false;
+        
+        if (request->hasParam("reset_wifi", true)) {
+            String ssid = request->getParam("reset_wifi", true)->value();
+
+            if (cfg.wifi.ssid.equalsIgnoreCase(ssid)) {
+                cfg.wifi.ssid = "";
+                cfg.wifi.password = "";
+                Config::saveConfig(cfg);
+                managerScheduleReboot(1000);
+                request->send(200, mime_application_json, "{\"status\":\"reboot\"}");
+            } else {
+                request->send(403, mime_application_json, "{\"status\":\"error\"}");
+            }
+
+            return;
+        }
 
         if (request->hasParam("type", true)) {
             uint8_t t = request->getParam("type", true)->value().toInt();
@@ -288,6 +304,8 @@ void setupWebServer(AsyncWebServer& server) {
 
         led["deviceName"]   = cfg.deviceName;
         led["extraMdnsTag"] = cfg.extraMdnsTag;
+
+        led["ssid"] = cfg.wifi.ssid;
 
         serializeJson(doc, *response);
         request->send(response);
