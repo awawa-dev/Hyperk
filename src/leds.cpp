@@ -315,11 +315,7 @@ namespace Leds{
             }
             else
             { // SPI (APA102 / SK9822)
-                #if defined(ARDUINO_ARCH_ESP32)
-                    dotstar = new DotStar(cfgLedNumLeds, cfgLedDataPin, cfgLedClockPin); //23, 18
-                #else 
-                    dotstar = new DotStar(cfgLedNumLeds, cfgLedDataPin, cfgLedClockPin); //19, 18
-                #endif
+                dotstar = new DotStar(cfgLedNumLeds, cfgLedClockPin, cfgLedDataPin);
                 dotstar->Begin();
             }
         #endif
