@@ -55,7 +55,7 @@
         typedef NeoPixelBus<NeoGrbFeature, NeoEsp32I2s0Ws2812xMethod> NeoPixel;
         typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32I2s0Sk6812Method> NeoPixelRgbw;
     #elif defined(ARDUINO_ARCH_ESP32)
-        #if ETH_PHY_TYPE == ETH_PHY_LAN8720
+        #if defined(ETH_PHY_TYPE) && (ETH_PHY_TYPE == ETH_PHY_LAN8720)
             typedef NeoPixelBus<DotStarBgrFeature, DotStarMethod> DotStar;
         #else
             typedef NeoPixelBus<DotStarBgrFeature, DotStarSpi10MhzMethod > DotStar;
