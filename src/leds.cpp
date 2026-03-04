@@ -294,7 +294,7 @@ namespace Leds{
                     #elif defined(CONFIG_IDF_TARGET_ESP32C3)
                         case 7:  FastLED.addLeds<APA102, 7, 6, BRG>(leds, virtualLedsNumber); break;
                     #elif defined(CONFIG_IDF_TARGET_ESP32C6)
-                        case 6:  FastLED.addLeds<APA102, 6, 5, BRG>(leds, virtualLedsNumber); break;
+                        case 5:  FastLED.addLeds<APA102, 5, 4, BRG>(leds, virtualLedsNumber); break;
                     #endif
                     
                     default:                        
