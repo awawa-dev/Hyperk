@@ -8,7 +8,9 @@ function setupPinValidator() {
         "ESP32-S2": { gpio: null,                      spi: {35:36} },
         "ESP32-ETH01": { gpio: [2,4,14],               spi: {4:14} },
         "ESP32-C2": { gpio: [0,1,2,3,4,5,6,7,10], spi: {7:6} },
-        "ESP32-C5": { gpio: [0,1,2,3,4,5,6,7,8,10,11,27], spi: {7:6} } // GPIO27 = built-in WS2812B
+        "ESP32-C5": { gpio: [0,1,2,3,4,5,6,7,8,10,11,27], spi: {7:6} }, // GPIO27 = built-in WS2812B
+        "RP2040":   { gpio: null,                      spi: {19:18} },
+        "RP2350":   { gpio: null,                      spi: {19:18} }
     };
     
     const arch = (typeof cfgDeviceArchitecture !== 'undefined') ? cfgDeviceArchitecture : "";
