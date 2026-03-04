@@ -165,7 +165,7 @@ void setupWebServer(AsyncWebServer& server) {
             uint8_t t = request->getParam("type", true)->value().toInt();
             if (t != (uint8_t)cfg.led.type)
             {
-                #ifdef USE_FASTLED
+                #ifndef LEDS_NOT_REQUIRE_RESTART
                     needsRestart = true;
                 #endif
 
@@ -176,7 +176,7 @@ void setupWebServer(AsyncWebServer& server) {
             uint8_t p = request->getParam("dataPin", true)->value().toInt();
             if (p != cfg.led.dataPin)
             {
-                #ifdef USE_FASTLED
+                #ifndef LEDS_NOT_REQUIRE_RESTART
                     needsRestart = true;
                 #endif
 
@@ -187,7 +187,7 @@ void setupWebServer(AsyncWebServer& server) {
             uint8_t p = request->getParam("clockPin", true)->value().toInt();
             if (p != cfg.led.clockPin)
             {
-                #ifdef USE_FASTLED
+                #ifndef LEDS_NOT_REQUIRE_RESTART
                     needsRestart = true;
                 #endif
 
@@ -198,7 +198,7 @@ void setupWebServer(AsyncWebServer& server) {
             uint16_t n = request->getParam("numLeds", true)->value().toInt();
             if (n != cfg.led.numLeds && n <= MAX_LEDS)
             {
-                #ifdef USE_FASTLED
+                #ifndef LEDS_NOT_REQUIRE_RESTART
                     needsRestart = true;
                 #endif
                                 

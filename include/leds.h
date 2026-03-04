@@ -4,6 +4,10 @@
 #include <vector>
 #include "config.h"
 
+#if !(defined(USE_FASTLED) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350))
+    #define LEDS_NOT_REQUIRE_RESTART
+#endif
+
 namespace Leds {
     void applyLedConfig();
     int getLedsNumber();

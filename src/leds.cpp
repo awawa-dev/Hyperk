@@ -86,6 +86,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace Leds{
+    bool ledDriverInitialized = false;
     volatile bool delayedRender = false;
     uint16_t briPlus = 256;    
 
@@ -187,15 +188,17 @@ namespace Leds{
                     uint8_t calGain, uint8_t calRed, uint8_t calGreen, uint8_t calBlue) {
         clearAll();
 
-        #ifdef USE_FASTLED
-            if (FastLED.count())
+        #ifndef LEDS_NOT_REQUIRE_RESTART
+            if (ledDriverInitialized)
             {
                 if (cfgLedType == LedType::SK6812) {
                     setParamsAndPrepareCalibration(calGain, calRed, calGreen, calBlue);
                 }
                 return;
             }
+        #endif
 
+        #ifdef USE_FASTLED
             if (leds != nullptr)
             {
                 delete[] leds;
@@ -321,6 +324,8 @@ namespace Leds{
         #endif
 
         clearAll();
+
+        ledDriverInitialized = true;
     }
 
     void applyLedConfig()
