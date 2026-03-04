@@ -290,7 +290,7 @@ namespace Leds{
             { // SPI (APA102 / SK9822)
                 switch (cfgLedDataPin) {
                     #if defined(CONFIG_IDF_TARGET_ESP32S3)
-                        case 11: FastLED.addLeds<APA102, 11, 12, BRG>(leds, virtualLedsNumber); break;
+                        case 5: FastLED.addLeds<APA102, 5, 4, BRG>(leds, virtualLedsNumber); break;
                     #elif defined(CONFIG_IDF_TARGET_ESP32C2) || defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C5)
                         case 7:  FastLED.addLeds<APA102, 7, 6, BRG>(leds, virtualLedsNumber); break;
                     #elif defined(CONFIG_IDF_TARGET_ESP32C6)
