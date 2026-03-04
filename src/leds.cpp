@@ -56,8 +56,8 @@
         typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32I2s0Sk6812Method> NeoPixelRgbw;
     #elif defined(ARDUINO_ARCH_ESP32)
         typedef NeoPixelBus<DotStarBgrFeature, DotStarSpi10MhzMethod > DotStar;
-        typedef NeoPixelBus<NeoGrbFeature, NeoEsp32I2s1800KbpsMethod> NeoPixel;
-        typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32I2s1800KbpsMethod> NeoPixelRgbw;
+        typedef NeoPixelBus<NeoGrbFeature, NeoEsp32I2s1Ws2812xMethod> NeoPixel;
+        typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32I2s1Sk6812Method> NeoPixelRgbw;
     #elif defined(ARDUINO_ARCH_ESP8266)
         typedef NeoPixelBus<DotStarBgrFeature, DotStarSpiMethod> DotStar;
         typedef NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart1Ws2812xMethod> NeoPixel;
