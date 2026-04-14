@@ -25,7 +25,7 @@ The firmware can be flashed directly from your browser:
 
 ## Integration
 
-- **HyperHDR:** Native support via `udpraw` and `WLED` protocols. A dedicated DDP driver coming soon to HyperHDR.
+- **HyperHDR:** Dedicated Hyperk driver (>v22beta1). Also works via its native `DDP`, `udpraw`, and `WLED` drivers.
 - **Home Assistant:** Automatic discovery with support for power on/off, color, and brightness control.
 
 ## Network Services
