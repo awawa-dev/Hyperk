@@ -23,6 +23,10 @@ The firmware can be flashed directly from your browser:
 - **NeoPixel RGBW:** SK6812 (includes white channel calibration known from HyperSerial).
 - **DotStar SPI:** APA102 and high-speed clocked LEDs.
 
+## Manual
+
+👉 [https://wiki.hyperhdr.eu/Hyperk](https://wiki.hyperhdr.eu/Hyperk)
+
 ## Integration
 
 - **HyperHDR:** Dedicated Hyperk driver (>v22beta1). Also works via its native `DDP`, `udpraw`, and `WLED` drivers.
