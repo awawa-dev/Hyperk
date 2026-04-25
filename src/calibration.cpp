@@ -25,7 +25,7 @@
 *  SOFTWARE.
 */
 
-#if !defined(USE_FASTLED)
+#if defined(USE_NEOPIXELBUS)
     #include <NeoPixelBus.h>
 #endif
 
@@ -131,9 +131,9 @@ void setParamsAndPrepareCalibration(uint8_t _gain, uint8_t _red, uint8_t _green,
     }    
 }
 
-RgbwColor rgb2rgbw(uint8_t r, uint8_t g, uint8_t b)
+ColorRgbw rgb2rgbw(uint8_t r, uint8_t g, uint8_t b)
 {
-    RgbwColor color;
+    ColorRgbw color;
 
     color.W = min(channelCorrection.red[r],
                     min(channelCorrection.green[g],

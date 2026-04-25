@@ -44,11 +44,6 @@ function setupPinValidator() {
         if (isSel) {
             opts.forEach(p => el.add(new Option(`GPIO ${p}`, p)));
             el.value = opts.includes(parseInt(old.value)) ? old.value : opts[0];
-
-            if (opts.length === 1) { 
-                el.disabled = true;
-                el.title = "Only one valid GPIO for this mode/architecture"; 
-            }
         } else {
             el.value = old.value || 0;
         }
@@ -71,7 +66,7 @@ function setupPinValidator() {
         const clockPinEditor = setField('clockPin', ((autoClk !== null) ? [autoClk] : null)); 
 
         els.clkLabel.style.display = isSpi ? 'block' : 'none';
-        clockPinEditor.disabled = clockPinEditor.disabled || !isSpi;
+        clockPinEditor.disabled = !isSpi;
     }
 
     els.type.onchange = updateUI;
