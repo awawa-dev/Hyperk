@@ -7,6 +7,16 @@
 
 #define CONFIG_FILE "/config.json"
 
+#ifndef POWER_RELAY_GPIO
+    #define POWER_RELAY_GPIO -1 
+#endif
+
+#ifdef POWER_RELAY_INVERT
+    #define POWER_RELAY_INVERT_BOOL true
+#else
+    #define POWER_RELAY_INVERT_BOOL false
+#endif
+
 enum class LedType : uint8_t {
     WS2812 = 0,
     SK6812 = 1,
@@ -14,9 +24,28 @@ enum class LedType : uint8_t {
 };
 
 struct LedConfig {
+    struct Segment {
+        uint8_t data;
+        uint8_t clock;
+        uint16_t startIndex;
+
+        bool operator==(const Segment& other) const {
+            return data == other.data && clock == other.clock && startIndex == other.startIndex;
+        }
+
+        bool operator!=(const Segment& other) const {
+            return !(*this == other);
+        }
+    };
+
+    struct Relay {
+        int8_t gpio;
+        bool inverted;
+    };
+
     LedType  type       = LedType::WS2812;
-    uint8_t  dataPin    = 2;     // default for most boards
-    uint8_t  clockPin   = 4;
+    std::vector<Segment> segments = {{2, 4, 0}};
+    Relay  relay = {POWER_RELAY_GPIO, POWER_RELAY_INVERT_BOOL};
     uint16_t numLeds    = 16;
     uint8_t  brightness = 255;
     uint8_t  r = 196, g = 32, b = 8;
@@ -28,6 +57,10 @@ struct LedConfig {
 	    uint8_t green = 0xA0;
 	    uint8_t blue  = 0xA0;
     } calibration;
+
+    void deserializeSegments(const JsonArray& jsonArray);
+    bool deserializeSegments(const String& rawValues);
+    void serializeSegments(JsonArray& jsonArray) const;
 };
 
 struct AppConfig {

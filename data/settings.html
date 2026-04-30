@@ -59,17 +59,24 @@
             </select>
           </label>
 
-          <label>Data Pin (GPIO)
-            <select name="dataPin" required></select>
-          </label>
-
-          <label id="clockPinLabel">Clock Pin (GPIO)
-            <select name="clockPin"></select>
-          </label>
-
           <label>Number of LEDs
             <input type="number" name="numLeds" min="1" max="2000" value="16" required>
           </label>          
+
+          <div id="segmentContainer">
+          </div>
+
+          <button type="button" id="addSegmentBtn" class="addSegmentBtn outline">+ Add segment</button>        
+          
+          <div class="powerRelay">
+            <label for="relay-gpio">Power relay GPIO <input type="checkbox" id="relay-enable-toggle" role="switch">
+              <input type="number" name="relay-gpio" min="-1" max="64" value="-1" aria-describedby="gpio-helper" style="margin-top: 1rem; display: none;">
+            </label>
+            <label for="relay-inverted" style="display: none;">
+              <input type="checkbox" name="relay-inverted" role="switch">
+              Inverted
+            </label>
+          </div>
         
           <div id="whiteCalibration" style="display: none;">
             <hr class="section-divider">
@@ -196,6 +203,8 @@
       let cfgBoardArchitecture = ""
       let cfgDeviceVersion = "";
       let cfgSSID = "";
+      let cfgSegments = [];
+      let cfgSegmentSupported = 0;
 
       const loadedScripts = {};
       function loadSubScript(scriptName, initFunName) {
@@ -268,24 +277,33 @@
               if (versionField !== undefined){
                   cfgDeviceVersion = versionField;                  
               }
+
+              const segmentsField = l["segments"];              
+              if (segmentsField !== undefined){
+                  cfgSegments = segmentsField;                  
+              }
+
+              const segmentSupportedField = l["segmentSupported"];              
+              if (segmentSupportedField !== undefined){
+                  cfgSegmentSupported = segmentSupportedField;                  
+              }
               
               const fwInfo = document.getElementById('firmware_version_info');
               if (fwInfo) {
                   fwInfo.innerHTML = `<strong>${cfgDeviceVersion || 'unknown'}</strong> <small style="opacity:0.75">(${cfgDeviceArchitecture || '—'})</small>`;
               }
 
-              const fields = ['type', 'dataPin', 'clockPin', 'numLeds', 'brightness', 'r', 'g', 'b', 'effect', 'deviceName', 'extraMdnsTag', 'calGain', 'calRed', 'calGreen', 'calBlue'];
+              const fields = ['type', 'numLeds', 'relay-gpio', 'relay-inverted', 'brightness', 'r', 'g', 'b', 'effect', 'deviceName', 'extraMdnsTag', 'calGain', 'calRed', 'calGreen', 'calBlue'];
               fields.forEach(field => {
                   const el = document.querySelector(`[name="${field}"]`);
-                  if (el && l[field] !== undefined){
-                    if (field == 'dataPin' || field == 'clockPin')
-                    {
-                        if (el.tagName === 'SELECT' && !(Array.from(el.options).some(opt => String(opt.value) === String(l[field])))) {
-                            el.add(new Option(`GPIO ${l[field]}`, l[field]));
-                        }
+                  if (el && l[field] !== undefined){       
+                    if (el.type === 'checkbox') {         
+                      el.checked = (l[field] === true);
+                    }             
+                    else {
+                      el.value = l[field];
+                      el.dispatchEvent(new Event('input'));
                     }
-                    el.value = l[field];
-                    el.dispatchEvent(new Event('input'));
                   }
               });
 
@@ -310,16 +328,114 @@
       }
 
       document.addEventListener('DOMContentLoaded', () => {          
+          const relayToggle = document.getElementById('relay-enable-toggle');
+          const relayGpioInput = document.querySelector('input[name="relay-gpio"]');
+
+          relayToggle.addEventListener('change', (e) => {
+            const displayValue = e.target.checked ? 'block' : 'none';
+            relayGpioInput.style.display = displayValue;
+            document.querySelector('label[for="relay-inverted"]').style.display = displayValue;
+            if (!e.target.checked) {
+              relayGpioInput.value = -1;
+            }
+          });
+
+          relayGpioInput.addEventListener('input', (e) => {
+            relayToggle.checked = parseInt(e.target.value, 10) >= 0;
+            relayToggle.dispatchEvent(new Event('change'));
+          });
+
           loadCurrentConfig();
       });
 
+
+      const clearErrors = (form) => {
+          form.querySelectorAll('[aria-invalid]').forEach(el => {
+              el.removeAttribute('aria-invalid');
+              const msg = el.parentNode.querySelector('small.err-msg');
+              if (msg) msg.remove();
+          });
+      };
+
+      const setError = (el, message) => {
+          el.setAttribute('aria-invalid', 'true');
+          let msg = el.parentNode.querySelector('small.err-msg');
+          if (!msg) {
+              msg = document.createElement('small');
+              msg.className = 'err-msg';
+              msg.style.color = 'var(--pico-form-element-invalid-border-color)';
+              el.parentNode.appendChild(msg);
+          }
+          msg.textContent = message;
+          el.focus();
+      };
+
+      let validateSegments = (f) => {
+          const numLedsInput = f.querySelector('input[name="numLeds"]');
+          const numLeds = numLedsInput ? parseInt(numLedsInput.value, 10) : 0;
+
+          for (let i = 0; i < cfgSegments.length; i++) {
+              if (i > 0) {
+                  const gpioControl = document.querySelector(`[name="dataPin${i}"]`);
+                  const gpioValue = parseInt(gpioControl?.value, 10);
+                  const indexGpio = gpioValue ? cfgSegments.findIndex(segment => segment.data == gpioValue) : -1;
+                  if (indexGpio >= 0 && indexGpio !== i) {
+                      setError(gpioControl, `Error: segment ${i + 1} has duplicated data GPIO`);
+                      gpioControl.focus();
+                      return false;
+                  }
+              }
+
+              const input = document.querySelector(`input[name="startIndex${i}"]`);
+              if (!input) continue;
+
+              const tempStartIndex = parseInt(input.value, 10);
+              const currentStart = isNaN(tempStartIndex) ? -1 : tempStartIndex;
+
+              if (currentStart < 0) {
+                  setError(input, `Error: segment ${i + 1} has invalid start index`);
+                  input.focus();
+                  return false;
+              }
+
+              if (currentStart >= numLeds) {
+                  setError(input, `Error: segment ${i + 1} starts at index ${currentStart}, which exceeds total LEDs (${numLeds}).`);
+                  input.focus();
+                  return false;
+              }
+
+              if (i > 0) {
+                  const prevInput = document.querySelector(`input[name="startIndex${i - 1}"]`);
+                  if (prevInput) {
+                      const prevStart = parseInt(prevInput.value, 10);
+                      if (currentStart <= prevStart) {
+                          setError(input, `Error: segment ${i + 1} (starts at ${currentStart}) must start after the previous one (starts at ${prevStart}).`);
+                          input.focus();
+                          return false;
+                      }
+                  }
+              }
+          }
+          return true;
+      } 
+
       document.querySelector('form[action="/save_config"]').addEventListener('submit', async (e) => {
           e.preventDefault();
-          const f = e.target, btn = f.querySelector('button');
-          btn.setAttribute('aria-busy', 'true');
+          const f = e.target, btn = f.querySelector('button');          
 
           try {
-              const res = await fetch(f.action, { method: 'POST', body: new URLSearchParams(new FormData(f)) });
+              const formData = new FormData(f);
+              
+              formData.append("segments", cfgSegments.flatMap(seg => [seg.data, seg.clock, seg.startIndex]).join(","));
+
+              clearErrors(f);
+
+              if (!validateSegments(f))
+                  return;
+              
+              btn.setAttribute('aria-busy', 'true');
+
+              const res = await fetch(f.action, { method: 'POST', body: new URLSearchParams(formData) });
               if (res.ok) {
                   const data = await res.json();
                   showToast(data.status === 'reboot');

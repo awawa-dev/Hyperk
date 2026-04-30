@@ -5,6 +5,7 @@
 struct VolatileState {
     bool     on = false;
     bool     live = false;
+    bool     relayEnabled = false;
     struct StaticColor
     {
         uint8_t  red = 0, green = 0, blue = 0;
@@ -29,4 +30,6 @@ namespace Volatile{
     bool clearUpdatedBrightnessState();
     bool clearUpdatedPowerOnState();
     bool clearUpdatedStaticColorState();
+
+    void setRelay(bool enable);
 };

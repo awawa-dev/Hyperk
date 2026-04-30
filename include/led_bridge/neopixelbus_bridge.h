@@ -69,6 +69,13 @@ struct neopixelbus_bridge : public led_bridge
     NeoPixel* neopixel = nullptr;
     NeoPixelRgbw* neopixelRgbw = nullptr;
 
+    bool restartRequired() override {
+        #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
+            return true;
+        #endif
+        return false;
+    }
+
     int getLedsNumber() override
     {
         if (dotstar != nullptr) 
@@ -86,12 +93,24 @@ struct neopixelbus_bridge : public led_bridge
         if (dotstar == nullptr && neopixel == nullptr && neopixelRgbw == nullptr) 
             return;
 
+        for (int i = 0; !canRender() && i < 200; i++) {
+            Log::debug("-");
+            delay(1);
+        }
+
         if (dotstar != nullptr) 
             {dotstar->ClearTo(RgbColor(0, 0, 0)); dotstar->Show();}
         else if (neopixel != nullptr)
             {neopixel->ClearTo(RgbColor(0, 0, 0)); neopixel->Show();}
         else if (neopixelRgbw != nullptr)
-            {neopixelRgbw->ClearTo(RgbwColor(0, 0, 0, 0)); neopixelRgbw->Show();}
+            {neopixelRgbw->ClearTo(RgbwColor(0, 0, 0, 0)); neopixelRgbw->Show();}            
+
+        for (int i = 0; !canRender() && i < 200; i++) {
+            Log::debug("+");
+            delay(1);                
+        }
+
+        Log::debug("leds cleared");
     }
 
     bool canRender() override
@@ -110,34 +129,30 @@ struct neopixelbus_bridge : public led_bridge
         }
         return true;
     }
+
+    int segmentSupported() override
+    {
+        return 0;
+    }
     
-    bool executeRenderLed(bool isNewFrame) override
+    bool supportsDoubleBuffering() override {
+        return true;
+    }
+
+    void executeRenderLed() override
     {
         if (dotstar != nullptr) 
         {
-            if (!dotstar->CanShow())
-            {
-                return false;
-            }
             dotstar->Show();
         }
         else if (neopixel != nullptr)
         {
-            if (!neopixel->CanShow())
-            {
-                return false;
-            }
             neopixel->Show();
         }
         else if (neopixelRgbw != nullptr)
         {
-            if (!neopixelRgbw->CanShow())
-            {
-                return false;
-            }
             neopixelRgbw->Show();
         }
-        return true;
     }
 
     void releaseDriverResources() override
@@ -149,9 +164,14 @@ struct neopixelbus_bridge : public led_bridge
         delay(100);
     }
 
-    void initializeLedDriver(LedType cfgLedType, uint16_t cfgLedNumLeds, uint8_t cfgLedDataPin, uint8_t cfgLedClockPin,
+    void initializeLedDriver(LedType cfgLedType, uint16_t cfgLedNumLeds, const std::vector<LedConfig::Segment>& cfgSegments,
                             uint8_t calGain, uint8_t calRed, uint8_t calGreen, uint8_t calBlue) override
     {
+        if (cfgSegments.size() < 0) return;
+        const auto& segment = cfgSegments.front();
+        uint8_t cfgLedDataPin = segment.data;
+        uint8_t cfgLedClockPin = segment.clock;
+
         if (cfgLedType == LedType::WS2812 || cfgLedType == LedType::SK6812)
         { // clockless
             switch (cfgLedType)

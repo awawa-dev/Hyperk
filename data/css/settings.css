@@ -132,3 +132,34 @@ details summary[role="button"]:focus {
   color: #111111;
   font-weight: bold;
 }
+
+.segmentElement {
+  border: 1px solid #405000;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: var(--pico-border-radius);
+}
+
+.delSegmentBtn {
+  width: auto;
+  padding: 0.25rem 1rem;
+  margin-bottom: 0;
+  background-color: #EAB308 !important;
+  border-color: #EAB308 !important;
+  color: #111111 !important;
+}
+
+.addSegmentBtn {
+  display: none;
+  margin-top: 1rem;
+  background-color: #2e7d32 !important;
+  border-color: #2e7d32 !important;
+  color: #fff !important;
+}
+
+.powerRelay {
+  border: 1px solid #000090;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: var(--pico-border-radius);
+}

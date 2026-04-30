@@ -74,6 +74,14 @@ String getDeviceArch()
         modelName = F("RP2350");
     #elif defined(ARDUINO_ARCH_RP2040)
         modelName = F("RP2040");
+    #elif defined(GLEDOPTO_GL_C_616WL)
+        modelName = F("esp32-GLEDOPTO_GL_C_616WL");
+    #elif defined(GLEDOPTO_GL_C_615WL)
+        modelName = F("esp32-GLEDOPTO_GL_C_615WL");
+    #elif defined(DOMRAEM_WLE_ADM)
+        modelName = F("esp32-DOMRAEM_WLE_ADM");
+    #elif defined(IOTORERO_ETHERNET)
+        modelName = F("esp32-IOTORERO_ETHERNET");
     #elif defined(ARDUINO_ARCH_ESP32) && defined(WEBSERVER_USE_ETHERNET)
         modelName = F("ESP32-ETH01");
     #elif defined(CONFIG_IDF_TARGET_ESP32)

@@ -41,9 +41,11 @@ namespace Storage {
         DeserializationError err = deserializeJson(doc, file);
         file.close();
 
-        if (err) {
-            Log::debug("JSON parse error");
-            return false;
+        if (err) {            
+            LittleFS.format();
+            LittleFS.begin();
+            Log::debug("JSON parse error → creating default");
+            return saveConfig(cfg);
         }
 
         cfg.wifi.ssid     = doc["wifi"]["ssid"] | "";
@@ -52,8 +54,24 @@ namespace Storage {
         cfg.extraMdnsTag  = doc["extraMdnsTag"] | "wled";
 
         cfg.led.type       = static_cast<LedType>(doc["led"]["type"] | static_cast<int>(LedType::WS2812));
-        cfg.led.dataPin    = doc["led"]["dataPin"]    | 2;
-        cfg.led.clockPin   = doc["led"]["clockPin"]   | 0;
+
+        if (JsonArray jsonSegments = doc["segments"].as<JsonArray>(); !jsonSegments.isNull() && jsonSegments.size() > 0) {
+            cfg.led.deserializeSegments(jsonSegments);
+        }
+        else {
+            Log::debug("Cannot find segments");
+            LedConfig::Segment seg;
+            seg.data    = doc["led"]["dataPin"]    | 2;
+            seg.clock   = doc["led"]["clockPin"]   | 4;
+            seg.startIndex = 0;
+            cfg.led.segments.clear();
+            cfg.led.segments.push_back(seg);
+        }
+
+        JsonObject jsonRelay = doc["relay"].as<JsonObject>();
+        cfg.led.relay.gpio = jsonRelay["relay-gpio"] | POWER_RELAY_GPIO;
+        cfg.led.relay.inverted = jsonRelay["relay-inverted"] | POWER_RELAY_INVERT_BOOL;
+
         cfg.led.numLeds    = doc["led"]["numLeds"]    | 16;
         cfg.led.brightness = doc["led"]["brightness"] | 255;
         cfg.led.r          = doc["led"]["r"] | 196;
@@ -78,8 +96,14 @@ namespace Storage {
         doc["extraMdnsTag"]        = cfg.extraMdnsTag;
 
         doc["led"]["type"]       = static_cast<uint8_t>(cfg.led.type);
-        doc["led"]["dataPin"]    = cfg.led.dataPin;
-        doc["led"]["clockPin"]   = cfg.led.clockPin;
+
+        JsonArray segArray = doc["segments"].to<JsonArray>();
+        cfg.led.serializeSegments(segArray);
+
+        JsonObject jsonRelay = doc["relay"].to<JsonObject>();
+        jsonRelay["relay-gpio"]     = cfg.led.relay.gpio;
+        jsonRelay["relay-inverted"] = cfg.led.relay.inverted;
+
         doc["led"]["numLeds"]    = cfg.led.numLeds;
         doc["led"]["brightness"] = cfg.led.brightness;
         doc["led"]["r"]          = cfg.led.r;
@@ -97,6 +121,13 @@ namespace Storage {
         serializeJson(doc, file);
         file.flush();
         file.close();
+
+        #ifdef DEBUG_LOG
+            String output;
+            serializeJson(doc, output);
+            Log::debug("Saving config: ", output);
+        #endif
+
         return true;
     }
 };

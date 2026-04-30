@@ -26,6 +26,9 @@ jobs:
           - group: ClassicESP
             boards: "esp32 esp32s2 esp32-eth01 esp8266"
             cache_extra: ""
+          - group: CustomBoards
+            boards: "esp32-GLEDOPTO_GL_C_616WL esp32-GLEDOPTO_GL_C_615WL esp32-DOMRAEM_WLE_ADM esp32-IOTORERO_ETHERNET"
+            cache_extra: "" 
           - group: Pico
             boards: "pico pico2"
             cache_extra: ""

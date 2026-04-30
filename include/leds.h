@@ -4,13 +4,13 @@
 #include <vector>
 #include "config.h"
 
-#if !(defined(USE_FASTLED) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350))
-    #define LEDS_NOT_REQUIRE_RESTART
-#endif
-
 namespace Leds {
+    bool supportsDoubleBuffering();
+    void tryWaitForRenderer();
     void applyLedConfig();
+    bool restartRequired();
     int getLedsNumber();
+    int segmentSupported();
     void checkDelayedRender();
     void renderLed(bool isNewFrame);
     void synchronizeLedsToVolatileStateBeforeDelayedRender();

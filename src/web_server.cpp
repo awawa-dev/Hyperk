@@ -181,44 +181,41 @@ void setupWebServer(AsyncWebServer& server) {
             uint8_t t = request->getParam("type", true)->value().toInt();
             if (t != (uint8_t)cfg.led.type)
             {
-                #ifndef LEDS_NOT_REQUIRE_RESTART
+                if (Leds::restartRequired()){
                     needsRestart = true;
-                #endif
+                }
 
                 cfg.led.type = (LedType)t;
             }
         }
-        if (request->hasParam("dataPin", true)) {
-            uint8_t p = request->getParam("dataPin", true)->value().toInt();
-            if (p != cfg.led.dataPin)
+        if (request->hasParam("segments", true)) {
+            if (cfg.led.deserializeSegments(request->getParam("segments", true)->value()))
             {
-                #ifndef LEDS_NOT_REQUIRE_RESTART
+                if (Leds::restartRequired()){
                     needsRestart = true;
-                #endif
-
-                cfg.led.dataPin = p;
-            }
-        }
-        if (request->hasParam("clockPin", true)) {
-            uint8_t p = request->getParam("clockPin", true)->value().toInt();
-            if (p != cfg.led.clockPin)
-            {
-                #ifndef LEDS_NOT_REQUIRE_RESTART
-                    needsRestart = true;
-                #endif
-
-                cfg.led.clockPin = p;
+                }
             }
         }
         if (request->hasParam("numLeds", true)) {
             uint16_t n = request->getParam("numLeds", true)->value().toInt();
             if (n != cfg.led.numLeds && n <= MAX_LEDS)
             {
-                #ifndef LEDS_NOT_REQUIRE_RESTART
+                if (Leds::restartRequired()){
                     needsRestart = true;
-                #endif
+                }
                                 
                 cfg.led.numLeds = n;
+            }
+        }
+        if (request->hasParam("relay-gpio", true)) {
+            int8_t relGpio = static_cast<int8_t>(request->getParam("relay-gpio", true)->value().toInt());
+            bool inv = (request->hasParam("relay-inverted", true));
+            if ( relGpio != cfg.led.relay.gpio || inv != cfg.led.relay.inverted)
+            {
+                needsRestart = true;
+                cfg.led.relay.gpio = relGpio;
+                cfg.led.relay.inverted = inv;
+                Log::debug("Set relay-gpio to: ", cfg.led.relay.gpio, ", inverted: ", cfg.led.relay.inverted);
             }
         }
 
@@ -287,8 +284,14 @@ void setupWebServer(AsyncWebServer& server) {
         led["version"]      = APP_VERSION;
         
         led["type"]     = (int)cfg.led.type;
-        led["dataPin"]  = cfg.led.dataPin;
-        led["clockPin"] = cfg.led.clockPin;
+
+        JsonArray segArray = led["segments"].to<JsonArray>();
+        cfg.led.serializeSegments(segArray);
+        led["segmentSupported"]  = Leds::segmentSupported();  
+
+        led["relay-gpio"]  = cfg.led.relay.gpio;
+        led["relay-inverted"]  = cfg.led.relay.inverted;
+
         led["numLeds"]  = cfg.led.numLeds;
         led["calGain"]  = cfg.led.calibration.gain;
         led["calRed"]   = cfg.led.calibration.red;
@@ -371,7 +374,11 @@ void sendEmbeddedFile(AsyncWebServerRequest *request, const uint8_t* content, ui
         response->addHeader(F("Connection"), F("close"));
         if (strcmp(contentType, "application/javascript") == 0 || strcmp(contentType, "text/css") == 0 || strcmp(contentType, "image/png") == 0) 
         {
-            response->addHeader(F("Cache-Control"), F("public, max-age=31536000, immutable"));
+            #ifdef DEBUG_LOG
+                response->addHeader(F("Cache-Control"), F("no-store, no-cache, must-revalidate, max-age=0"));
+            #else
+                response->addHeader(F("Cache-Control"), F("public, max-age=31536000, immutable"));
+            #endif
         }
         request->send(response);
     }

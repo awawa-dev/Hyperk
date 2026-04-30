@@ -59,6 +59,10 @@ void handleDDP(WiFiUDP& udp) {
         return;
     }
 
+    if (!Leds::supportsDoubleBuffering()) {
+        Leds::tryWaitForRenderer();
+    }
+
     const bool brightnessControl = (Volatile::state.brightness != 255);
     auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
     auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
@@ -128,6 +132,10 @@ void handleRealTime(WiFiUDP& udp) {
         return;
     }
 
+    if (!Leds::supportsDoubleBuffering()) {
+        Leds::tryWaitForRenderer();
+    }
+
     const bool brightnessControl = (Volatile::state.brightness != 255);
     auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
     auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
@@ -186,9 +194,13 @@ void handleRAW(WiFiUDP& udp)
         return;
     }
 
+    if (!Leds::supportsDoubleBuffering()) {
+        Leds::tryWaitForRenderer();
+    }
+
     const bool brightnessControl = (Volatile::state.brightness != 255);
     auto setPixel = brightnessControl ? Leds::setLed<true> : Leds::setLed<false>;
-    auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
+     [[maybe_unused]] auto setPixelW = brightnessControl ? Leds::setLedW<true> : Leds::setLedW<false>;
 
     uint8_t buffer[packetSize]; 
     uint8_t* endBuffer = &(buffer[0]) + udp.read(buffer, packetSize);    

@@ -30,12 +30,15 @@
 
 struct led_bridge
 {
+    virtual bool supportsDoubleBuffering() = 0;
+    virtual bool restartRequired() {return false;};
     virtual int getLedsNumber() = 0;
     virtual void clearAll() = 0;
     virtual bool canRender() = 0;
-    virtual bool executeRenderLed(bool isNewFrame) = 0;
+    virtual int segmentSupported() = 0;
+    virtual void executeRenderLed() = 0;
     virtual void releaseDriverResources() = 0;
-    virtual void initializeLedDriver(LedType cfgLedType, uint16_t cfgLedNumLeds, uint8_t cfgLedDataPin, uint8_t cfgLedClockPin,
+    virtual void initializeLedDriver(LedType cfgLedType, uint16_t cfgLedNumLeds, const std::vector<LedConfig::Segment>& cfgSegments,
                             uint8_t calGain, uint8_t calRed, uint8_t calGreen, uint8_t calBlue) = 0;
 
     virtual inline void setLedRgb(int index, uint8_t r, uint8_t g, uint8_t b) = 0;

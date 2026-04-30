@@ -25,6 +25,7 @@
 *  SOFTWARE.
 */
 #include "volatile_state.h"
+#include "config.h"
 
 namespace Volatile{
     static VolatileState internalState;
@@ -58,6 +59,9 @@ namespace Volatile{
     void updateStreamTimeout(unsigned long timeout){
         internalState.streamTimeout = (timeout) ? timeout + millis() : 0;
         internalState.live = (timeout);
+        if (internalState.live) {
+            setRelay(true);
+        }
     };
 
     void checkStreamTimeout(){
@@ -87,5 +91,29 @@ namespace Volatile{
         updatedStaticColor = false;
         return ret;
     };
+
+    void setRelay(bool enable) {
+        if (Config::cfg.led.relay.gpio < 0)
+            return;
+
+        if (internalState.relayEnabled != enable) {            
+            const auto enableState = (Config::cfg.led.relay.inverted) ? LOW : HIGH;
+            const auto disableState = (Config::cfg.led.relay.inverted) ? HIGH : LOW;
+
+            internalState.relayEnabled = enable;
+
+            pinMode(Config::cfg.led.relay.gpio, OUTPUT);
+
+            if (internalState.relayEnabled) {
+                digitalWrite(Config::cfg.led.relay.gpio, enableState);
+                delay(20);
+                Log::debug("Power relay is enabled. GPIO: ", Config::cfg.led.relay.gpio, ", level: ", enableState, ((Config::cfg.led.relay.inverted) ? " (inverted)" : ""));
+            }
+            else {
+                digitalWrite(Config::cfg.led.relay.gpio, disableState);
+                Log::debug("Power relay is disabled. GPIO: ", Config::cfg.led.relay.gpio, ", level: ", disableState, ((Config::cfg.led.relay.inverted) ? " (inverted)" : ""));
+            }            
+        }
+    }
 }
 

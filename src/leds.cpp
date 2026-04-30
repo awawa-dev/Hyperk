@@ -33,10 +33,24 @@
 #include "volatile_state.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-
-#ifdef USE_FASTLED
+#if defined(USE_PICOLADA)
+    #include "led_bridge/picolada_bridge.h"
+    namespace Leds{ picolada_bridge renderer; }
+#elif defined(USE_MULTI_ESP32_LED_STRIP)
+    #include "led_bridge/multi_esp32_led_strip_bridge.h"
+    namespace Leds{ 
+        #if defined(CONFIG_IDF_TARGET_ESP32C2)
+            multi_esp32_led_strip_bridge<false> renderer;
+        #else
+            multi_esp32_led_strip_bridge<true> renderer;
+        #endif
+    }
+#elif defined(USE_FASTLED)
     #include "led_bridge/fastled_bridge.h"
     namespace Leds{ fastled_bridge renderer; }
+#elif defined(USE_PARLIO_LED_STRIP)
+    #include "led_bridge/parlio_bridge.h"
+    namespace Leds{ parlio_bridge<true> renderer; }
 #elif defined(USE_ESPRESSIF_LED_STRIP)
     #include "led_bridge/espressif_bridge.h"
     namespace Leds{ espressif_bridge renderer; }
@@ -50,9 +64,37 @@ namespace Leds{
     volatile bool delayedRender = false;
     uint16_t briPlus = 256;
 
+    bool restartRequired()
+    {
+        return renderer.restartRequired();
+    }
+
     int getLedsNumber()
     {
         return renderer.getLedsNumber();
+    }
+
+    int segmentSupported()
+    {
+        return renderer.segmentSupported();
+    }
+
+    bool supportsDoubleBuffering()
+    {
+        return renderer.supportsDoubleBuffering();
+    }
+
+    void tryWaitForRenderer()
+    {
+        const int max_waiting = 80;
+        int wait = 0;
+        for (wait = 0; !renderer.canRender() && wait < max_waiting; wait++) {
+            delay(1);                
+        }
+
+        if (wait > 0) {
+            Log::debug("Had to wait for LED renderer: ", wait);
+        }
     }
 
     void synchronizeLedsToVolatileStateBeforeDelayedRender()
@@ -82,9 +124,13 @@ namespace Leds{
 
         if (updated)
         {
+            tryWaitForRenderer();
+
             auto r = (Volatile::state.on) ? Volatile::state.staticColor.red : 0;
             auto g = (Volatile::state.on) ? Volatile::state.staticColor.green : 0;
             auto b = (Volatile::state.on) ? Volatile::state.staticColor.blue : 0;
+
+            Volatile::setRelay(r || g || b);
             
             for(int i = 0; i < getLedsNumber(); i++) {
                 if (Volatile::state.brightness != 255)
@@ -97,11 +143,11 @@ namespace Leds{
         }
     }
 
-    void initLEDs(LedType cfgLedType, uint16_t cfgLedNumLeds, uint8_t cfgLedDataPin, uint8_t cfgLedClockPin,
+    void initLEDs(LedType cfgLedType, uint16_t cfgLedNumLeds, const std::vector<LedConfig::Segment>& cfgSegments,
                     uint8_t calGain, uint8_t calRed, uint8_t calGreen, uint8_t calBlue) {
         renderer.clearAll();
 
-        #ifndef LEDS_NOT_REQUIRE_RESTART
+        if (renderer.restartRequired()){
             if (ledDriverInitialized)
             {
                 if (cfgLedType == LedType::SK6812) {
@@ -109,7 +155,7 @@ namespace Leds{
                 }
                 return;
             }
-        #endif
+        }
 
         renderer.releaseDriverResources();
 
@@ -120,8 +166,10 @@ namespace Leds{
 
         delayedRender = false;
 
+        tryWaitForRenderer();
+
         // LED controller setup
-        renderer.initializeLedDriver(cfgLedType, cfgLedNumLeds, cfgLedDataPin, cfgLedClockPin, calGain, calRed, calGreen, calBlue);
+        renderer.initializeLedDriver(cfgLedType, cfgLedNumLeds, cfgSegments, calGain, calRed, calGreen, calBlue);
 
         renderer.clearAll();
 
@@ -131,7 +179,9 @@ namespace Leds{
     void applyLedConfig()
     {
         const AppConfig& cfg = Config::cfg;
-        initLEDs(cfg.led.type, cfg.led.numLeds, cfg.led.dataPin, cfg.led.clockPin, cfg.led.calibration.gain, cfg.led.calibration.red, cfg.led.calibration.green, cfg.led.calibration.blue);
+
+        Volatile::setRelay(cfg.led.r || cfg.led.g || cfg.led.b);
+        initLEDs(cfg.led.type, cfg.led.numLeds, cfg.led.segments, cfg.led.calibration.gain, cfg.led.calibration.red, cfg.led.calibration.green, cfg.led.calibration.blue);
         Volatile::updateBrightness(cfg.led.brightness);
         Volatile::updatePowerOn(cfg.led.r || cfg.led.g || cfg.led.b);
         Volatile::updateStaticColor(cfg.led.r, cfg.led.g, cfg.led.b);
@@ -186,12 +236,13 @@ namespace Leds{
 
     void renderLed(bool isNewFrame)
     {
-        if (!renderer.executeRenderLed(isNewFrame))
+        if (!renderer.canRender())
         {
             queueRender(isNewFrame);
         }
         else
         {
+            renderer.executeRenderLed();
             delayedRender = false;
             stats.renderedFrames = stats.renderedFrames + 1;
         }

@@ -29,6 +29,8 @@
 #include "storage.h"
 #include "volatile_state.h"
 
+#include <algorithm>
+
 namespace Config {
     AppConfig internalCfg;
     const AppConfig& cfg = internalCfg;
@@ -40,5 +42,70 @@ namespace Config {
     bool saveConfig(const AppConfig& cfg) {
         internalCfg = cfg;
         return Storage::saveConfig(internalCfg);
+    }   
+};
+
+void LedConfig::deserializeSegments(const JsonArray& jsonArray) {
+    segments.clear();
+    
+    for (JsonVariant value : jsonArray) {
+        Segment seg;
+        
+        seg.data = value["data"] | 2;
+        seg.clock = value["clock"] | 4;
+        seg.startIndex = value["startIndex"] | 0;
+
+        Log::debug("Segments restored. Data: ", seg.data, ", clock: ", seg.clock, ", start: ", seg.startIndex); 
+        
+        segments.push_back(seg);
+    }
+};
+
+bool LedConfig::deserializeSegments(const String& rawValues) {
+    std::vector<Segment> newSegments;
+    const char* p = rawValues.c_str();
+    char* end;
+    long buffer[3];
+    uint8_t count = 0;
+
+    while (*p != '\0') {
+        buffer[count++] = strtol(p, &end, 10);
+        if (count == 3) {
+            newSegments.push_back({
+                static_cast<uint8_t>(std::clamp(buffer[0], 0l, 64l)),
+                static_cast<uint8_t>(std::clamp(buffer[1], 0l, 64l)),
+                static_cast<uint16_t>(std::clamp(buffer[2], 0l, 2048l))
+            });
+            count = 0;
+        }
+
+        p = end;
+        
+        if (*p == ',') {
+            p++;
+        }
+        else {            
+            break; 
+        }
+    };
+
+    bool changed = (segments != newSegments) && newSegments.size() > 0;
+
+    Log::debug("Segments changed: ", changed, ", values: ", rawValues, ", detected segments: ", newSegments.size());    
+
+    if (changed) {
+        segments = std::move(newSegments);
+    }
+
+    return changed;
+};
+
+void LedConfig::serializeSegments(JsonArray& jsonArray) const {
+    for (const auto& seg : segments) {
+        JsonObject obj = jsonArray.add<JsonObject>();
+        
+        obj["data"] = seg.data;
+        obj["clock"] = seg.clock;
+        obj["startIndex"] = seg.startIndex;
     }
 };
