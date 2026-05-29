@@ -1,13 +1,10 @@
 import os
 import gzip
 import urllib.parse
+from pathlib import Path
 Import("env")
 
-def embed_web_files():
-    data_dir = "data"
-    # Use the project's include directory defined by PlatformIO
-    output_file = os.path.join(env.get("PROJECT_INCLUDE_DIR"), "web_resources.h")
-    
+def embed_web_files(data_dir, output_file, sufix=""):
     if not os.path.exists(data_dir):
         print(f"[WebEmbedder] Error: {data_dir} directory not found!")
         return
@@ -27,13 +24,38 @@ def embed_web_files():
     print(f"[WebEmbedder] Generating {output_file} (version = {app_version})...")
     
     files_data = []
+
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
     
     with open(output_file, "w", encoding="utf-8") as f:
         # File header and guards
         f.write("// Generated file - do not edit\n")
-        f.write("#ifndef WEB_RESOURCES_H\n#define WEB_RESOURCES_H\n\n#include <Arduino.h>\n\n")
+        f.write(f"#ifndef WEB_RESOURCES{sufix}_H\n#define WEB_RESOURCES{sufix}_H\n\n#include <Arduino.h>\n\n")
+
+        # === combine CSS do hyperk.css ===
+        css_dir = os.path.join(data_dir, "css")
+        combined_css = b""
+
+        if not sufix:
+            combined_css += f'@import url("/css/hyperk_OSS.css?v={app_version}");\n'.encode('utf-8')
+
+        if os.path.exists(css_dir):            
+            css_files_paths = []
+            
+            for c_root, _, c_files in os.walk(css_dir):
+                for c_file in c_files:
+                    if c_file.endswith(".css"):
+                        css_files_paths.append(os.path.join(c_root, c_file))
+            
+            css_files_paths.sort()
+            
+            for css_path in css_files_paths:
+                with open(css_path, "rb") as f_css:
+                    combined_css += f_css.read() + b"\n"
         
         # 1. Generate byte arrays for each file
+        currentPageIndex = 0
+        pageHomeIndex = -1
         for root, dirs, files in os.walk(data_dir):
             for file in files:
                 full_path = os.path.join(root, file)
@@ -70,34 +92,52 @@ def embed_web_files():
                         raw_data = content.encode("utf-8")
 
                     # Compress data with Gzip
-                    compressed = gzip.compress(raw_data)
-                    f.write(f"const uint8_t PAGE_{var_name}[] PROGMEM = {{ ")
+                    compressed = b""
+                    if ext == ".css":
+                        if combined_css:
+                            compressed = gzip.compress(combined_css)
+                            var_name = var_name.replace(file.upper().replace(".", "_"), "HYPERK_CSS")
+                            rel_path = rel_path.replace(file, f"hyperk{sufix}.css")
+                            combined_css = b""
+                        else:
+                            continue
+                    else:
+                        compressed = gzip.compress(raw_data)
+                    
+                    f.write(f"const char PAGE{sufix}_{var_name}[] PROGMEM = {{ ")
                     f.write(", ".join([f"0x{b:02x}" for b in compressed]))
                     f.write(f" }};\n")
-                    f.write(f"const uint32_t PAGE_{var_name}_LEN = {len(compressed)};\n\n")
-                    processor = ""
-                    if file == "stats.html":
-                        processor = file
+                    f.write(f"const uint32_t PAGE{sufix}_{var_name}_LEN = {len(compressed)};\n\n")
                     
                     files_data.append({
                         "url": "/" + rel_path,
-                        "var": f"PAGE_{var_name}",
-                        "len": f"PAGE_{var_name}_LEN",
+                        "var": f"PAGE{sufix}_{var_name}",
+                        "len": f"PAGE{sufix}_{var_name}_LEN",
                         "mime": mime
                     })
+                    if file == "index.html":
+                        pageHomeIndex = currentPageIndex                    
+                    currentPageIndex = currentPageIndex + 1
 
         # 2. Define the Resource structure and the lookup table
-        f.write("struct WebResource {\n  const char* url;\n  const uint8_t* data;\n  uint32_t len;\n  const char* mime;\n};\n\n")
+        f.write(f"struct WebResource {{\n  const char* url;\n  PGM_P data;\n  uint32_t len;\n  const char* mime;\n}};\n\n")
         
-        f.write(f"const WebResource webResources[] PROGMEM = {{\n")
+        f.write(f"{'extern ' if sufix else ''}const WebResource webResources{sufix}[] = {{\n")
         for file in files_data:
             f.write(f"  {{ \"{file['url']}\", {file['var']}, {file['len']}, \"{file['mime']}\" }},\n")
         f.write("};\n\n")
         
         total_count = len(files_data)
-        f.write(f"const uint16_t webResourcesCount = {total_count};\n\n")
+        f.write(f"{'extern ' if sufix else ''}const uint16_t webResourcesCount{sufix} = {total_count};\n\n")
+
+        if pageHomeIndex != -1:
+            f.write(f"{'extern ' if sufix else ''}const uint16_t pageHomeIndex{sufix} = {pageHomeIndex};\n\n")
+
         f.write("#endif\n")
     print(f"[WebEmbedder] Successfully created {output_file}")
 
 # Execute the embedding process immediately when the script is loaded by PlatformIO
-embed_web_files()
+generated_include_dir = os.path.join(env.subst("$BUILD_DIR"), "generated_files")
+embed_web_files(os.path.join(env.get("PROJECT_SRC_DIR"), "backend", "data"), os.path.join(generated_include_dir, "web_resources.h"))
+embed_web_files(os.path.join(env.get("PROJECT_DIR"), "data"), os.path.join(generated_include_dir, "web_resources_OSS.h"), "_OSS")
+env.Append(CPPPATH=[generated_include_dir])  

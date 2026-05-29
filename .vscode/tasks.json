@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build ESP Core 2.x",
+      "label": "Build ModernESP_C2",
       "type": "shell",
-      "command": "pio run -e esp32 -e esp32s2 -e esp32-eth01 -e esp8266",
+      "command": "pio run -e esp32c2",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "shared" },
       "options": {
@@ -15,9 +15,9 @@
       }
     },
     {
-      "label": "Build ESP Core 3.x",
+      "label": "Build ModernESP_C3_C5_C6",
       "type": "shell",
-      "command": "pio run -e esp32c3 -e esp32s3 -e esp32c6 -e esp32c2 -e esp32c5",
+      "command": "pio run -e esp32c3 -e esp32c5 -e esp32c6",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "shared" },
       "options": {
@@ -28,7 +28,59 @@
       }
     },
     {
-      "label": "Build RP2040",
+      "label": "Build ModernESP_S2",
+      "type": "shell",
+      "command": "pio run -e esp32s2",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "options": {
+        "env": {
+          "PATH": "${userHome}/.platformio/penv/Scripts;${userHome}/.platformio/penv;${env:PATH}",
+          "PYTHONPATH": ""
+        }
+      }
+    },
+    {
+      "label": "Build ModernESP_S3",
+      "type": "shell",
+      "command": "pio run -e esp32s3",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "options": {
+        "env": {
+          "PATH": "${userHome}/.platformio/penv/Scripts;${userHome}/.platformio/penv;${env:PATH}",
+          "PYTHONPATH": ""
+        }
+      }
+    },
+    {
+      "label": "Build ClassicESP",
+      "type": "shell",
+      "command": "pio run -e esp32 -e esp32-eth01 -e esp8266",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "options": {
+        "env": {
+          "PATH": "${userHome}/.platformio/penv/Scripts;${userHome}/.platformio/penv;${env:PATH}",
+          "PYTHONPATH": ""
+        }
+      }
+    },
+    {
+      "label": "Build CustomBoards",
+      "type": "shell",
+      "command": "pio run -e esp32-GLEDOPTO_GL_C_616WL -e esp32-GLEDOPTO_GL_C_615WL -e esp32-DOMRAEM_WLE_ADM -e esp32-IOTORERO_ETHERNET",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "options": {
+        "env": {
+          "PATH": "${userHome}/.platformio/penv/Scripts;${userHome}/.platformio/penv;${env:PATH}",
+          "PYTHONPATH": ""
+        }
+      }
+    },
+    {
+      "label": "Build Pico",
       "type": "shell",
       "command": "pio run -e pico -e pico2",
       "problemMatcher": [],
@@ -43,9 +95,13 @@
     {
       "label": "Build ALL",
       "dependsOn": [
-        "Build ESP Core 3.x",
-        "Build ESP Core 2.x",        
-        "Build RP2040"
+        "Build ClassicESP",
+        "Build ModernESP_C2",
+        "Build ModernESP_C3_C5_C6",
+        "Build ModernESP_S2",
+        "Build ModernESP_S3",
+        "Build CustomBoards",
+        "Build Pico"
       ],
       "dependsOrder": "sequence",
       "group": {

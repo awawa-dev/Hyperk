@@ -8,7 +8,8 @@
 .vscode/settings.json
 src/idf_component.yml
 src/idf_component.yml.orig
-include/web_resources.h
+src/backend/
+export_backend/
 release/
 managed_components/
 sdkconfig*

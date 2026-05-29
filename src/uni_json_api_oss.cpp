@@ -1,4 +1,4 @@
-/* led_bridge.h
+/* uni_json_api_oss.cpp
 *
 *  MIT License
 *
@@ -24,23 +24,21 @@
 *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 *  SOFTWARE.
 */
+#include <Arduino.h>
+#include "uni_json_api_oss.h"
+#include "effects_factory.h"
 
-#pragma once
-#include "config.h"
+#if defined(ESP8266)
+    #include <ESP8266WiFi.h>
+#else
+    #include <WiFi.h>
+#endif
 
-struct led_bridge
+static const char JSON_TPL[] PROGMEM = TPL_BODY_WITH_EFFECTS;
+
+void UniJsonApi::uniConfigJsonResponse(IHttpRequest*, IHttpResponse* response)
 {
-    virtual bool supportsDoubleBuffering() = 0;
-    virtual bool restartRequired() {return false;};
-    virtual int getLedsNumber() = 0;
-    virtual void clearAll() = 0;
-    virtual bool canRender() = 0;
-    virtual int segmentSupported() = 0;
-    virtual void executeRenderLed() = 0;
-    virtual void releaseDriverResources() = 0;
-    virtual void initializeLedDriver(LedType cfgLedType, uint16_t cfgLedNumLeds, const std::vector<LedConfig::Segment>& cfgSegments,
-                            uint8_t calGain, uint8_t calRed, uint8_t calGreen, uint8_t calBlue) = 0;
-
-    virtual inline void setLedRgb(int index, uint8_t r, uint8_t g, uint8_t b) = 0;
-    virtual inline void setLedRgbw(int index, uint8_t r, uint8_t g, uint8_t b, uint8_t w) = 0;
-};
+    char b[sizeof(JSON_TPL)];
+    memcpy_P(b, JSON_TPL, sizeof(JSON_TPL));
+    UniJsonApi::fillUniConfigJsonResponse(response, b);
+}

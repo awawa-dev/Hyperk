@@ -7,9 +7,9 @@ from os.path import exists
 Import("env")
 
 def run_merge_bin(mcu, factory_path, boot_addr, bootloader, partitions, source_path, env):
-    cmd_name = "merge_bin"
-    f_mode_flag = "--flash_mode"
-    f_size_flag = "--flash_size"
+    cmd_name = "merge-bin"
+    f_mode_flag = "--flash-mode"
+    f_size_flag = "--flash-size"
 
     cmd = [
         env.subst("$PYTHONEXE"), "-m", "esptool",
