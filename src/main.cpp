@@ -30,47 +30,60 @@
 #if defined(ARDUINO_ARCH_ESP8266)
     #include <ESP8266WiFi.h>
     #include <ESP8266mDNS.h>
+    #include <Updater.h>
 #elif defined(ARDUINO_ARCH_ESP32)
     #include <WiFi.h>
     #include <ESPmDNS.h>
     #ifdef WEBSERVER_USE_ETHERNET
         #include <ETH.h>
     #endif
+    #include <Update.h>
 #elif defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
     #include <WiFi.h>
     #include <LEAmDNS.h>
+    #include <Updater.h>
 #endif
 
-#include <ESPAsyncWebServer.h>
+#ifdef USE_ASYNC_WEBSERWER
+    #include <ESPAsyncWebServer.h>
+#elif defined(USE_SYNC_WEBSERWER)
+    #include <WebServer.h>
+#else
+    #include <esp_http_server.h>
+#endif
+
 #include <LittleFS.h>
 #include <WiFiUdp.h>
 #include <DNSServer.h>
-#include "config.h"
-#include "storage.h"
-#include "mdns_service.h"
-#include "web_server.h"
-#include "udp_receiver.h"
-#include "leds.h"
-#include "manager.h"
+#include "main.h"
+#include "web_resources_OSS.h"
 
 namespace {
     DNSServer dnsServer;
-    AsyncWebServer server(80);
     WiFiUDP udpDDP, udpRealTime, udpRAW;
 
     bool inAPMode = false;
-    bool hasEthernet = false; 
-}
+    bool hasEthernet = false;
+    bool scheduledApRestart = false;
 
-void startAP() {
-    inAPMode = true;
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(APP_NAME "-Setup");    
-    delay(200);     
-    IPAddress IP = WiFi.softAPIP();    
-    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-    dnsServer.start(53, "*", IP);        
-    Log::debug("Captive Portal Ready at: ", IP);
+    void startAP(bool scheduleAutomaticRestartToReconnect) {
+        constexpr uint16_t DNS_PORT = 53;
+        inAPMode = true;
+        WiFi.mode(WIFI_AP);
+        WiFi.softAP(APP_NAME "-Setup");    
+        delay(200);     
+        IPAddress IP = WiFi.softAPIP();    
+        dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+        dnsServer.start(DNS_PORT, "*", IP);        
+        Log::SERIAL_LOG("Captive Portal Ready at: ", IP);
+
+        if (scheduleAutomaticRestartToReconnect) {
+            constexpr auto restartTime = 3 * 60000;
+            Log::SERIAL_LOG("Scheduling automatic restart in ", (restartTime / 1000), " seconds to reconnect to the configured WiFi network");
+            Manager::scheduleReboot(restartTime);
+            scheduledApRestart = true;
+        }    
+    }
 }
 
 bool isAPMode() {
@@ -78,24 +91,23 @@ bool isAPMode() {
 }
 
 void setup() {
-    Serial.begin(115200);
-    delay(500);
-
-    #ifdef DEBUG_LOG
-        delay(8000);
-    #endif
-
     #if defined(ARDUINO_ARCH_ESP32)
         LittleFS.begin(true);
     #else
         if (!LittleFS.begin()) {
-            Log::debug("FS Mount failed, formatting...");
+            Log::SERIAL_LOG("FS Mount failed, formatting...");
             LittleFS.format();
             LittleFS.begin();
         }
     #endif
 
+    #ifdef ENABLE_DEBUG        
+        delay(8000);
+    #endif
+
     Config::loadConfig();
+
+    SerialPort::init(Config::getSeriaPortSpeed());
 
     Leds::applyLedConfig();
 
@@ -105,30 +117,30 @@ void setup() {
         unsigned long timeout = millis() + 8000;
         while (millis() < timeout) {
             if (auto localIp = ETH.localIP(); localIp != IPAddress(0, 0, 0, 0)) {
-                Log::debug("Ethernet Connected → ", localIp.toString());
+                Log::SERIAL_LOG("Ethernet Connected → ", localIp.toString());
                 hasEthernet = true;
                 break;
             }
             if (millis() > (timeout - 5000) && !ETH.linkUp()) {
-                Log::debug("The cable is disconnected. Give up waiting for ethernet connection.");
+                Log::SERIAL_LOG("The cable is disconnected. Give up waiting for ethernet connection.");
                 break;
             }
             delay(500);
-            Log::debug(".");    
+            Log::SERIAL_LOG(".");    
         }
 
         if (!hasEthernet) {
-            Log::debug("Starting WiFi Fallback...");
+            Log::SERIAL_LOG("Starting WiFi Fallback...");
         }
-    #endif
-    
-    const AppConfig& cfg = Config::cfg;
+    #endif    
 
     // WiFi connection with fallback
     if (!hasEthernet){
-        if (cfg.wifi.ssid.length() > 0)
+        const char *ssid = nullptr, *pass = nullptr;
+        bool hasWifiConfig = Config::getWifiCredentials(ssid, pass);
+        if (hasWifiConfig)
         {
-            WiFi.begin(cfg.wifi.ssid.c_str(), cfg.wifi.password.c_str());
+            WiFi.begin(ssid, pass);
             uint32_t timeout = millis() + 12000;
             while (WiFi.status() != WL_CONNECTED && millis() < timeout)
             {
@@ -138,46 +150,66 @@ void setup() {
 
         if (WiFi.status() != WL_CONNECTED)
         {
-            startAP();
+            startAP(hasWifiConfig);
         }
         else
         {
-            Log::debug("Connected → ", WiFi.localIP());
+            Log::SERIAL_LOG("Connected → ", WiFi.localIP());
         }
     }
 
-    Mdns::startMDNS();
-    setupWebServer(server);
-    server.begin();
+    if (!inAPMode) {
+        Mdns::startMDNS();
+    }
 
-    Log::debug("HTTP Server started");
+    WebServerProvider::setupWebServer();
 
-    udpDDP.begin(4048);
-    Log::debug("UDP DDP listener started on port 4048");
-    udpRealTime.begin(21324);
-    Log::debug("UDP RealTime listener started on port 21324");
-    udpRAW.begin(5568);
-    Log::debug("Raw RGB color stream listener started on port 5568");
+    Log::SERIAL_LOG("HTTP Server started");
+
+    if (!inAPMode) {
+        udpDDP.begin(4048);
+        Log::SERIAL_LOG("UDP DDP listener started on port 4048");
+        udpRealTime.begin(21324);
+        Log::SERIAL_LOG("UDP RealTime listener started on port 21324");
+        udpRAW.begin(5568);
+        Log::SERIAL_LOG("Raw RGB color stream listener started on port 5568");
+    }
+
+    (void)Update;    
 }
 
 void loop()
-{
-    handleDDP(udpDDP);
-    handleRealTime(udpRealTime);
-    handleRAW(udpRAW);    
-    managerLoop();
+{    
+    #if defined(SERIAL_PORT_LITE)
+        SerialPort::processEventsFromLoop();
+    #endif
+
+    if (!inAPMode) {
+        UdpReceiver::handleDDP(udpDDP);
+        UdpReceiver::handleRealTime(udpRealTime);
+        UdpReceiver::handleRAW(udpRAW);
+    }
+
+    Manager::processEvents();
 
     // external libraries
     if (inAPMode)
     {
         dnsServer.processNextRequest();
+        if (scheduledApRestart && WiFi.softAPgetStationNum()){
+            scheduledApRestart = false;
+            Log::SERIAL_LOG("Client has connected to Hyperk AP. Cancelling scheduled restart.");
+            Manager::cancelScheduledReboot();
+        }
     }
     #if !defined(ARDUINO_ARCH_ESP32)
-        MDNS.update();
+        if (!inAPMode) {
+            MDNS.update();
+        }
     #endif
 
 
-    #if defined(DEBUG_LOG) && (defined(ESP32) || defined(ESP8266))
+    #if defined(ENABLE_DEBUG) && (defined(ESP32) || defined(ESP8266))
         static uint32_t lastAlive = 0;
         if (millis() - lastAlive > 1000) {
             lastAlive = millis();
@@ -189,7 +221,10 @@ void loop()
                 log1 = ESP.getMaxFreeBlockSize();
                 log2 = ESP.getHeapFragmentation();
             #endif
-            Serial.printf("[MEM_REPORT %lu] Heap: %6u | Largest block: %6u | Min free/frag: %6u\n", millis(), ESP.getFreeHeap(), log1, log2);
+            if (auto serialRes = SerialPort::getFreeSerialPortStack(); serialRes)
+                Log::SERIAL_LOG("[MEM_REPORT ", millis(), "] Heap: ", ESP.getFreeHeap()," | Largest block: ", log1," | Min free/frag: ", log2," | SerialTaskMem: ", serialRes);
+            else
+                Log::SERIAL_LOG("[MEM_REPORT ", millis(), "] Heap: ", ESP.getFreeHeap()," | Largest block: ", log1," | Min free/frag: ", log2);
         }
     #endif    
 }
