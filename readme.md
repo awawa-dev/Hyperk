@@ -1,6 +1,6 @@
 # Hyperk
 
-Hyperk is a minimalist, high-performance uni-platform WiFi LED driver for ESP8266, ESP32 (S2, S3, C2, C3, C5, C6), Raspberry Pi Pico W (RP2040, RP2350). Designed as a lightweight and streamlined component that avoids unnecessary complexity, it delivers low‑latency performance and integrates smoothly with platforms such as HyperHDR, while offering essential home‑automation capabilities through a clean, modern codebase.
+Hyperk is a minimalist, high-performance uni-platform WiFi/Ethernet LED driver for ESP8266, ESP32 (S2, S3, C2, C3, C5, C6), Raspberry Pi Pico W (RP2040, RP2350). Designed as a lightweight and streamlined component that avoids unnecessary complexity, it delivers low‑latency performance and integrates smoothly with platforms such as HyperHDR, while offering essential home‑automation capabilities through a clean, modern codebase.
 
 ## Installation
 
@@ -15,11 +15,11 @@ The firmware can be flashed directly from your browser:
 ## Supported Hardware
 
 - **Espressif:** ESP8266, ESP32, ESP32-S2, ESP32-S3, ESP32-C2, ESP32-C3, ESP32-C5, ESP32-C6, WT32-ETH01
-   - Initial support for custom boards: GLEDOPTO, DOMRAEM, Athom/IoTorero  
+   - Initial support for custom boards: GLEDOPTO, DOMRAEM, Athom/IoTorero including LAN8720 chipset  
    
 - **Raspberry Pi Pico W:** RP2040, RP2350
 
-Support for multi-segment (board-dependent) and power-relay control.
+Includes support for multi-segment (board-dependent), power-relay control, and HyperSerial (USB serial port communication).
 
 ## Supported LED Types
 
@@ -33,7 +33,8 @@ Support for multi-segment (board-dependent) and power-relay control.
 
 ## Integration
 
-- **HyperHDR:** Dedicated Hyperk driver (>v22beta1). Also works via its native `DDP`, `udpraw`, and `WLED` drivers.
+- **HyperHDR WiFi:** Dedicated Hyperk driver. Also works via its native `DDP`, `udpraw`, and `WLED` drivers.
+- **HyperHDR Serial Port:** HyperHDR Adalight USB serial communication variant (AWA protocol).
 - **Home Assistant:** Automatic discovery with support for power on/off, color, and brightness control.
 
 |      HyperHDR      |   Home Assistant   |
