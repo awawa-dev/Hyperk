@@ -136,6 +136,16 @@ void setup() {
 
     // WiFi connection with fallback
     if (!hasEthernet){
+        #if defined(ARDUINO_ARCH_ESP8266)
+            WiFi.persistent(false);
+            WiFi.setSleepMode(WIFI_NONE_SLEEP);
+            WiFi.setAutoReconnect(true);
+        #elif defined(ARDUINO_ARCH_ESP32)
+            WiFi.persistent(false);
+            WiFi.setSleep(false);
+            WiFi.setAutoReconnect(true);
+        #endif
+
         const char *ssid = nullptr, *pass = nullptr;
         bool hasWifiConfig = Config::getWifiCredentials(ssid, pass);
         if (hasWifiConfig)
@@ -154,6 +164,11 @@ void setup() {
         }
         else
         {
+            #if defined(ARDUINO_ARCH_ESP8266)
+                WiFi.setSleepMode(WIFI_NONE_SLEEP);
+            #elif defined(ARDUINO_ARCH_ESP32)
+                WiFi.setSleep(false);
+            #endif
             Log::SERIAL_LOG("Connected → ", WiFi.localIP());
         }
     }
