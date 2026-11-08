@@ -38,6 +38,7 @@
         #include <ETH.h>
     #endif
     #include <Update.h>
+    #include <atomic>
 #elif defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
     #include <WiFi.h>
     #include <LEAmDNS.h>
@@ -89,6 +90,46 @@ namespace {
 bool isAPMode() {
     return inAPMode;
 }
+
+#if defined(ARDUINO_ARCH_ESP32)
+    namespace WifiRecovery{
+        constexpr unsigned long WIFI_RECOVERY_DELAY = 10000UL;
+
+        enum class WifiEvent : uint8_t { NONE = 0, ASSOC_LEAVE, STA_CONNECTED};
+        std::atomic<WifiEvent> wifiEvent{WifiEvent::NONE};
+
+        bool wifiRecoveryPending = false;
+        unsigned long wifiRecoveryStarted = 0UL;
+
+        void processWiFiRecovery() {
+            switch (wifiEvent.exchange(WifiEvent::NONE, std::memory_order_relaxed)) {
+                case WifiEvent::ASSOC_LEAVE:
+                    if (!wifiRecoveryPending) {
+                        wifiRecoveryPending = true;
+                        wifiRecoveryStarted = millis();
+                        Log::SERIAL_LOG("[WiFi] ASSOC_LEAVE detected, recovery watchdog armed");
+                    }
+                    break;
+
+                case WifiEvent::STA_CONNECTED:
+                    wifiRecoveryPending = false;
+                    Log::SERIAL_LOG("[WiFi] STA_CONNECTED detected, disabling recovery watchdog");
+                    break;
+
+                default:
+                    break;
+            }
+
+            if (wifiRecoveryPending && millis() - wifiRecoveryStarted >= WIFI_RECOVERY_DELAY) {
+                wifiRecoveryPending = false;
+
+                if (WiFi.status() != WL_CONNECTED) {
+                    Log::SERIAL_LOG("[WiFi] Recovery timeout, reconnect request: ", WiFi.reconnect() ? "accepted" : "failed");
+                }            
+            }
+        }
+    }
+#endif
 
 void setup() {
     #if defined(ARDUINO_ARCH_ESP32)
@@ -156,6 +197,21 @@ void setup() {
         {
             Log::SERIAL_LOG("Connected → ", WiFi.localIP());
         }
+
+        #if defined(ARDUINO_ARCH_ESP32)
+            // register recovery procedure if not in AP/ethernet mode
+            if (!inAPMode) {
+                WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
+                    if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && info.wifi_sta_disconnected.reason == WIFI_REASON_ASSOC_LEAVE) {
+                        WifiRecovery::wifiEvent.store(WifiRecovery::WifiEvent::ASSOC_LEAVE, std::memory_order_relaxed);
+                    }
+                    else if (event == ARDUINO_EVENT_WIFI_STA_CONNECTED) {
+                        WifiRecovery::wifiEvent.store(WifiRecovery::WifiEvent::STA_CONNECTED, std::memory_order_relaxed);
+                    }
+                });
+                Log::SERIAL_LOG("Registered recovery procedure");
+            }
+        #endif                    
     }
 
     if (!inAPMode) {
@@ -205,6 +261,11 @@ void loop()
     #if !defined(ARDUINO_ARCH_ESP32)
         if (!inAPMode) {
             MDNS.update();
+        }
+    #elif defined(ARDUINO_ARCH_ESP32)
+        if (!inAPMode && !hasEthernet) {
+            // wifi recovery routine
+            WifiRecovery::processWiFiRecovery();
         }
     #endif
 
