@@ -62,7 +62,9 @@ jobs:
           sudo apt update
           sudo apt install ccache
           python -m pip install --upgrade pip
-          pip install --upgrade platformio esptool
+          pip install --upgrade "pioarduino==6.1.19" esptool
+          python -m venv ~/.platformio/penv
+          ~/.platformio/penv/bin/pip install "pioarduino==6.1.19"
 
       - name: Build ${{ matrix.group }}
         run: |
