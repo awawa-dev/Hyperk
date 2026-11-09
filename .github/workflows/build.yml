@@ -62,7 +62,7 @@ jobs:
           sudo apt update
           sudo apt install ccache
           python -m pip install --upgrade pip
-          pip install --upgrade platformio esptool
+          pip install --upgrade "platformio==6.1.19" esptool
 
       - name: Build ${{ matrix.group }}
         run: |
